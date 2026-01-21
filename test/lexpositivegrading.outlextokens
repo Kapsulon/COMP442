@@ -1,0 +1,41 @@
+[EQUAL, ==, 1:1] [PLUS, +, 1:5] [OPEN_PARENTHESIS, (, 1:9] [SEMICOLON, ;, 1:13] [IF, if, 1:17] [DO, do, 1:21] [READ, read, 1:25]
+[NOT_EQUAL, <>, 2:1] [MINUS, -, 2:5] [CLOSE_PARENTHESIS, ), 2:9] [COMMA, ,, 2:13] [THEN, then, 2:17] [END, end, 2:25] [WRITE, write, 2:29]
+[LESS_THAN, <, 3:1] [MULTIPLY, *, 3:5] [OPEN_BRACE, {, 3:9] [DOT, ., 3:13] [ELSE, else, 3:17] [PUBLIC, public, 3:25] [RETURN, return, 3:33]
+[GREATER_THAN, >, 4:1] [DIVIDE, /, 4:5] [CLOSE_BRACE, }, 4:9] [COLON, :, 4:13] [WHILE, while, 4:17] [PRIVATE, private, 4:25] [INHERITS, inherits, 4:33]
+[LESS_EQUAL, <=, 5:1] [ASSIGN, =, 5:5] [OPEN_BRACKET, [, 5:9] [DOUBLE_COLON, ::, 5:13] [CLASS, class, 5:17] [OR, or, 5:25] [LOCAL, local, 5:29]
+[GREATER_EQUAL, >=, 6:1] [CLOSE_BRACKET, ], 6:9] [INTEGER, integer, 6:17] [AND, and, 6:25] [VOID, void, 6:29]
+[FLOAT, float, 7:17] [NOT, not, 7:25] [MAIN, main, 7:29]
+
+
+
+
+
+[INT_NUM, 0, 13:1]
+[INT_NUM, 1, 14:1]
+[INT_NUM, 10, 15:1]
+[INT_NUM, 12, 16:1]
+[INT_NUM, 123, 17:1]
+[INT_NUM, 12345, 18:1]
+
+[FLOAT_NUM, 1.23, 20:1]
+[FLOAT_NUM, 12.34, 21:1]
+[FLOAT_NUM, 120.34, 22:1] [INT_NUM, 0, 22:7] [ID, e10, 22:8]
+[FLOAT_NUM, 12345.6789e-123, 23:1]
+
+[ID, abc, 25:1]
+[ID, abc1, 26:1]
+[ID, a1bc, 27:1]
+[ID, abc_1abc, 28:1]
+[ID, abc1_abc, 29:1]
+
+[BLOCK_COMMENT, /* this is a single line block comment */, 31:1]
+
+[BLOCK_COMMENT, /* this is a 
+multiple line
+block comment 
+*/, 33:1]
+
+
+
+
+[INLINE_COMMENT, // this is an inline comment, 38:1]
