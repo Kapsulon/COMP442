@@ -3,11 +3,15 @@
 #include <array>
 #include <cstdint>
 #include <fstream>
+#include <regex>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 #define TAB_SIZE 4
 #define NEXT_TAB_POS(pos) TAB_SIZE - ((pos - 1) % TAB_SIZE)
+
+#define MAKE_REGEX(pattern) std::regex(pattern, std::regex::ECMAScript | std::regex::optimize | std::regex::multiline)
 
 namespace lang
 {
@@ -89,13 +93,15 @@ namespace lang
         std::uint64_t m_position{ 1 };
         std::uint64_t m_iter{ 0 };
 
-        static constexpr std::array<std::pair<TokenType, std::string_view>, 5> m_RegExPatterns{
-            { { TokenType::BLOCK_COMMENT, R"(^\/\*[\s\S]*?\*\/)" },
-              { TokenType::INLINE_COMMENT, R"(^\/\/.*$)" },
-              { TokenType::FLOAT_NUM, R"(^([1-9][0-9]*|0)\.([0-9]*[1-9]|0)(e(\+|\-)?([1-9][0-9]*|0))?)" },
-              { TokenType::INT_NUM, R"(^([1-9][0-9]*)|0)" },
-              { TokenType::ID, R"(^[a-zA-Z]([a-zA-Z]|[0-9]|_)*)" } }
-        };
+        // static constexpr std::array<std::pair<TokenType, std::string_view>, 5> m_RegExPatterns{
+        //     { { TokenType::BLOCK_COMMENT, R"(^\/\*[\s\S]*?\*\/)" },
+        //       { TokenType::INLINE_COMMENT, R"(^\/\/.*$)" },
+        //       { TokenType::FLOAT_NUM, R"(^([1-9][0-9]*|0)\.([0-9]*[1-9]|0)(e(\+|\-)?([1-9][0-9]*|0))?)" },
+        //       { TokenType::INT_NUM, R"(^([1-9][0-9]*)|0)" },
+        //       { TokenType::ID, R"(^[a-zA-Z]([a-zA-Z]|[0-9]|_)*)" } }
+        // };
+
+        static const std::array<std::pair<lang::TokenType, std::regex>, 5> m_RegExPatterns;
 
         static constexpr std::array<std::pair<std::string_view, TokenType>, 21> m_Keywords{
             { { "if", TokenType::IF },         { "then", TokenType::THEN },         { "else", TokenType::ELSE },       { "while", TokenType::WHILE },

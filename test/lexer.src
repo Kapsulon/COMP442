@@ -1,0 +1,86 @@
+// inline comment 1
+//inline comment 2
+
+/* block comment 1 */
+/*
+block comment 2
+*/
+
+/* /* nested block comment */ */
+
+/* unterminated block comment
+
+123
+14356
+10000
+
+01
+0218
+
+1.492
+10.32
+
+01.52
+
+10.50
+
+120.34e12
+120.340e10
+12345.6789e-123
+12345.6789e+123
+
+abc
+a_bc
+ab2
+
+_abc
+2abc
+
+$ ! ' ?
+
+ab+cd=3
+
+if
+then
+else
+while
+class
+integer
+float
+do
+end
+public
+private
+or
+and
+not
+read
+write
+return
+inherits
+local
+void
+main
+
+==
+<>
+<=
+>=
+::
+<
+>
++
+-
+*
+/
+=
+(
+)
+{
+}
+;
+,
+.
+:
+[
+]

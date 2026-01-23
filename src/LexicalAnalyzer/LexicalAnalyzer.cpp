@@ -107,6 +107,14 @@ std::string lang::tokenTypeToString(TokenType type)
     }
 }
 
+const std::array<std::pair<lang::TokenType, std::regex>, 5> lang::LexicalAnalyzer::m_RegExPatterns{
+    std::make_pair(lang::TokenType::BLOCK_COMMENT, MAKE_REGEX(R"(^\/\*[\s\S]*?\*\/)")),
+    std::make_pair(lang::TokenType::INLINE_COMMENT, MAKE_REGEX(R"(^\/\/.*$)")),
+    std::make_pair(lang::TokenType::FLOAT_NUM, MAKE_REGEX(R"(^([1-9][0-9]*|0)\.([0-9]*[1-9]|0)(e(\+|\-)?([1-9][0-9]*|0))?)")),
+    std::make_pair(lang::TokenType::INT_NUM, MAKE_REGEX(R"(^([1-9][0-9]*)|0)")),
+    std::make_pair(lang::TokenType::ID, MAKE_REGEX(R"(^[a-zA-Z]([a-zA-Z]|[0-9]|_)*)"))
+};
+
 lang::Token lang::LexicalAnalyzer::makeToken(TokenType type, std::string lexeme)
 {
     return { .type = type, .lexeme = lexeme, .line = m_lineNumber, .pos = m_position };
@@ -172,11 +180,11 @@ lang::Token lang::LexicalAnalyzer::next()
 
 lang::Token lang::LexicalAnalyzer::runRegEx(const std::string &sub)
 {
+    std::regex test = MAKE_REGEX(R"(^\/\*[\s\S]*?\*\/)");
     for (auto pattern = m_RegExPatterns.begin(); pattern != m_RegExPatterns.end(); pattern++) {
-        std::regex regexPattern(pattern->second.data(), std::regex::ECMAScript | std::regex::optimize | std::regex::multiline);
         std::smatch match;
 
-        if (std::regex_search(sub, match, regexPattern) && match.position() == 0) {
+        if (std::regex_search(sub, match, pattern->second) && match.position() == 0) {
             lang::Token token = makeToken(pattern->first, match.str(0));
 
             for (char c : match.str(0)) {

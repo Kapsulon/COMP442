@@ -1,10 +1,11 @@
+#include <chrono>
 #include <cstdint>
 #include <format>
 #include <fstream>
-#include <iostream>
-#include <ostream>
+#include <regex>
 #include <stdexcept>
 #include <vector>
+
 #include "LexicalAnalyzer/LexicalAnalyzer.hpp"
 #include "spdlog/spdlog.h"
 
@@ -65,45 +66,67 @@ static void outputErrors(std::ofstream &out, std::vector<lang::Token> &tokens)
     }
 }
 
-int main(int argc, char **argv)
+static bool lexFile(const std::string &path, std::vector<lang::Token> &tokens)
 {
     lang::LexicalAnalyzer lexer{};
-    std::vector<lang::Token> tokens;
-
-    if (argc < 2) {
-        spdlog::error("No input file specified.");
-        return 1;
-    }
-
-    std::string path(argv[1]);
 
     try {
         lexer.readFile(path);
     } catch (const std::exception &e) {
         spdlog::error(e.what());
-        return 1;
+        return false;
     }
 
     for (lang::Token token = lexer.next(); token.type != lang::TokenType::END_OF_FILE; token = lexer.next()) {
         tokens.push_back(token);
     }
 
-    std::ofstream outlextokens;
-    std::ofstream outlextokensflaci;
-    std::ofstream outlexerrors;
+    return true;
+}
 
-    try {
-        outlextokens = openOutputFile(path, ".outlextokens");
-        outlextokensflaci = openOutputFile(path, ".outlextokensflaci");
-        outlexerrors = openOutputFile(path, ".outlexerrors");
-    } catch (const std::exception &e) {
-        spdlog::error(e.what());
+int main(int argc, char **argv)
+{
+    if (argc < 2) {
+        spdlog::error("No input file specified.");
         return 1;
     }
 
-    outputTokens(outlextokens, tokens);
-    outputTokensFlaci(outlextokensflaci, tokens);
-    outputErrors(outlexerrors, tokens);
+    std::vector<lang::Token> tokens;
+
+    for (std::uint64_t idx = 1; idx != argc; idx++) {
+        tokens.clear();
+        auto start = std::chrono::high_resolution_clock::now();
+        bool res = lexFile(argv[idx], tokens);
+        auto end = std::chrono::high_resolution_clock::now();
+
+        for (auto &token : tokens) {
+            token.lexeme = std::regex_replace(token.lexeme, std::regex("\n"), "\\n");
+        }
+
+        std::ofstream outlextokens;
+        std::ofstream outlextokensflaci;
+        std::ofstream outlexerrors;
+
+        try {
+            outlextokens = openOutputFile(argv[idx], ".outlextokens");
+            outlextokensflaci = openOutputFile(argv[idx], ".outlextokensflaci");
+            outlexerrors = openOutputFile(argv[idx], ".outlexerrors");
+        } catch (const std::exception &e) {
+            spdlog::error(e.what());
+            return -1;
+        }
+
+        outputTokens(outlextokens, tokens);
+        outputTokensFlaci(outlextokensflaci, tokens);
+        outputErrors(outlexerrors, tokens);
+
+        std::chrono::duration<double, std::milli> elapsed_ms = end - start;
+
+        if (res)
+            spdlog::info(R"(Lexed file "{}" ({} ms))", argv[idx], elapsed_ms.count());
+        else
+            spdlog::error(R"(Error lexing file "{}" ({} ms))", argv[idx], elapsed_ms.count());
+    }
 
     return 0;
 }
