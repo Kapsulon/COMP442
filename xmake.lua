@@ -19,7 +19,10 @@ add_requires(
     "ctre"
 )
 
+
 target("lexdriver")
+    set_default(true)
+    set_targetdir("bin")
     set_kind("binary")
     add_packages("spdlog", "ctre")
     add_includedirs("src")
