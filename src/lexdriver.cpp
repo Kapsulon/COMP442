@@ -71,15 +71,24 @@ static bool lexFile(const std::string &path, std::vector<lang::Token> &tokens)
     lang::LexicalAnalyzer lexer{};
 
     try {
-        lexer.readFile(path);
+        std::uint64_t size = lexer.readFile(path);
+        tokens.reserve(size / 10);
     } catch (const std::exception &e) {
         spdlog::error(e.what());
         return false;
     }
 
+    auto start = std::chrono::high_resolution_clock::now();
+
     for (lang::Token token = lexer.next(); token.type != lang::TokenType::END_OF_FILE; token = lexer.next()) {
         tokens.push_back(token);
     }
+
+    auto end = std::chrono::high_resolution_clock::now();
+
+    std::chrono::duration<double, std::milli> elapsed_ms = end - start;
+
+    spdlog::info(R"(Lexed file "{}" ({} ms))", path, elapsed_ms.count());
 
     return true;
 }
@@ -95,9 +104,7 @@ int main(int argc, char **argv)
 
     for (std::uint64_t idx = 1; idx != argc; idx++) {
         tokens.clear();
-        auto start = std::chrono::high_resolution_clock::now();
         bool res = lexFile(argv[idx], tokens);
-        auto end = std::chrono::high_resolution_clock::now();
 
         for (auto &token : tokens) {
             token.lexeme = std::regex_replace(token.lexeme, std::regex("\n"), "\\n");
@@ -120,12 +127,8 @@ int main(int argc, char **argv)
         outputTokensFlaci(outlextokensflaci, tokens);
         outputErrors(outlexerrors, tokens);
 
-        std::chrono::duration<double, std::milli> elapsed_ms = end - start;
-
-        if (res)
-            spdlog::info(R"(Lexed file "{}" ({} ms))", argv[idx], elapsed_ms.count());
-        else
-            spdlog::error(R"(Error lexing file "{}" ({} ms))", argv[idx], elapsed_ms.count());
+        if (!res)
+            spdlog::error(R"(Error lexing file "{}")", argv[idx]);
     }
 
     return 0;

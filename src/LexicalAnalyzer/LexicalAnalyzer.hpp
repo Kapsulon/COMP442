@@ -82,7 +82,7 @@ namespace lang
         LexicalAnalyzer() = default;
         ~LexicalAnalyzer() = default;
 
-        void readFile(std::string_view path);
+        std::uint64_t readFile(std::string_view path);
 
         Token next();
         float getProgress() const;
@@ -117,14 +117,7 @@ namespace lang
                                              { TokenType::INT_NUM, MatchIntNum },
                                              { TokenType::ID, MatchID } };
 
-        static constexpr std::array<std::pair<std::string_view, TokenType>, 21> m_Keywords{
-            { { "if", TokenType::IF },         { "then", TokenType::THEN },         { "else", TokenType::ELSE },       { "while", TokenType::WHILE },
-              { "class", TokenType::CLASS },   { "integer", TokenType::INTEGER },   { "float", TokenType::FLOAT },     { "do", TokenType::DO },
-              { "end", TokenType::END },       { "public", TokenType::PUBLIC },     { "private", TokenType::PRIVATE }, { "or", TokenType::OR },
-              { "and", TokenType::AND },       { "not", TokenType::NOT },           { "read", TokenType::READ },       { "write", TokenType::WRITE },
-              { "return", TokenType::RETURN }, { "inherits", TokenType::INHERITS }, { "local", TokenType::LOCAL },     { "void", TokenType::VOID },
-              { "main", TokenType::MAIN } }
-        };
+        static const std::unordered_map<std::string, TokenType> m_Keywords;
 
         static constexpr std::array<std::pair<std::string_view, TokenType>, 22> m_Operators{ { { "==", TokenType::EQUAL },
                                                                                                { "<>", TokenType::NOT_EQUAL },

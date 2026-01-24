@@ -1,6 +1,8 @@
 #include "LexicalAnalyzer.hpp"
 #include <iterator>
 #include <regex>
+#include <string>
+#include <unordered_map>
 #include "ctre.hpp"
 #include "spdlog/spdlog.h"
 
@@ -113,7 +115,7 @@ lang::Token lang::LexicalAnalyzer::makeToken(TokenType type, std::string lexeme)
     return { .type = type, .lexeme = lexeme, .line = m_lineNumber, .pos = m_position };
 }
 
-void lang::LexicalAnalyzer::readFile(std::string_view path)
+std::uint64_t lang::LexicalAnalyzer::readFile(std::string_view path)
 {
     std::ifstream file(path.data());
     m_lineNumber = 1;
@@ -127,6 +129,8 @@ void lang::LexicalAnalyzer::readFile(std::string_view path)
     m_file_contents = std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
     m_slice = std::string_view(m_file_contents);
     file.close();
+
+    return m_file_contents.size();
 }
 
 lang::Token lang::LexicalAnalyzer::next()
@@ -154,7 +158,7 @@ lang::Token lang::LexicalAnalyzer::next()
         return makeToken(TokenType::END_OF_FILE, "");
 
     lang::Token token = runRegEx();
-    if (token.type != lang::TokenType::UNKNOWN) {
+    if (token.type != lang::TokenType::UNKNOWN) [[likely]] {
         if (token.type == lang::TokenType::ID) {
             lang::Token keywordToken = checkKeywords(token);
             if (keywordToken.type != lang::TokenType::UNKNOWN) {
@@ -248,13 +252,22 @@ lang::Token lang::LexicalAnalyzer::runRegEx()
     return makeToken(lang::TokenType::UNKNOWN, std::string(1, m_file_contents[m_iter]));
 }
 
+const std::unordered_map<std::string, lang::TokenType> lang::LexicalAnalyzer::m_Keywords{
+    { "if", TokenType::IF },         { "then", TokenType::THEN },         { "else", TokenType::ELSE },       { "while", TokenType::WHILE },
+    { "class", TokenType::CLASS },   { "integer", TokenType::INTEGER },   { "float", TokenType::FLOAT },     { "do", TokenType::DO },
+    { "end", TokenType::END },       { "public", TokenType::PUBLIC },     { "private", TokenType::PRIVATE }, { "or", TokenType::OR },
+    { "and", TokenType::AND },       { "not", TokenType::NOT },           { "read", TokenType::READ },       { "write", TokenType::WRITE },
+    { "return", TokenType::RETURN }, { "inherits", TokenType::INHERITS }, { "local", TokenType::LOCAL },     { "void", TokenType::VOID },
+    { "main", TokenType::MAIN }
+};
+
 lang::Token lang::LexicalAnalyzer::checkKeywords(lang::Token &token)
 {
-    for (const auto &keyword : m_Keywords) {
-        if (token.lexeme.substr(0, keyword.first.size()) == keyword.first) {
-            token.type = keyword.second;
-            return token;
-        }
+
+    auto find = m_Keywords.find(token.lexeme);
+    if (find != m_Keywords.end()) {
+        token.type = find->second;
+        return token;
     }
 
     return makeToken(lang::TokenType::UNKNOWN, std::string(1, m_file_contents[m_iter]));
