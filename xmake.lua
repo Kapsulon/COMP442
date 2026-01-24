@@ -19,7 +19,6 @@ add_requires(
     "ctre"
 )
 
-
 target("lexdriver")
     set_default(true)
     set_targetdir("bin")
