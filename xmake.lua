@@ -15,12 +15,13 @@ set_config("build.compdb", true)
 add_rules("plugin.compile_commands.autoupdate")
 
 add_requires(
-    "spdlog"
+    "spdlog",
+    "ctre"
 )
 
 target("lexdriver")
     set_kind("binary")
-    add_packages("spdlog")
+    add_packages("spdlog", "ctre")
     add_includedirs("src")
     add_files("src/*/**.cpp")
     add_files("src/lexdriver.cpp")

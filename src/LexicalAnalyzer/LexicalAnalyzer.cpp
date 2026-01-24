@@ -1,6 +1,7 @@
 #include "LexicalAnalyzer.hpp"
 #include <iterator>
 #include <regex>
+#include "ctre.hpp"
 #include "spdlog/spdlog.h"
 
 std::string lang::tokenTypeToString(TokenType type)
@@ -107,14 +108,6 @@ std::string lang::tokenTypeToString(TokenType type)
     }
 }
 
-const std::array<std::pair<lang::TokenType, std::regex>, 5> lang::LexicalAnalyzer::m_RegExPatterns{
-    std::make_pair(lang::TokenType::BLOCK_COMMENT, MAKE_REGEX(R"(^\/\*[\s\S]*?\*\/)")),
-    std::make_pair(lang::TokenType::INLINE_COMMENT, MAKE_REGEX(R"(^\/\/.*$)")),
-    std::make_pair(lang::TokenType::FLOAT_NUM, MAKE_REGEX(R"(^([1-9][0-9]*|0)\.([0-9]*[1-9]|0)(e(\+|\-)?([1-9][0-9]*|0))?)")),
-    std::make_pair(lang::TokenType::INT_NUM, MAKE_REGEX(R"(^([1-9][0-9]*)|0)")),
-    std::make_pair(lang::TokenType::ID, MAKE_REGEX(R"(^[a-zA-Z]([a-zA-Z]|[0-9]|_)*)"))
-};
-
 lang::Token lang::LexicalAnalyzer::makeToken(TokenType type, std::string lexeme)
 {
     return { .type = type, .lexeme = lexeme, .line = m_lineNumber, .pos = m_position };
@@ -132,12 +125,16 @@ void lang::LexicalAnalyzer::readFile(std::string_view path)
     }
 
     m_file_contents = std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+    m_slice = std::string_view(m_file_contents);
+    file.close();
 }
 
 lang::Token lang::LexicalAnalyzer::next()
 {
     if (m_iter >= m_file_contents.size())
         return makeToken(TokenType::END_OF_FILE, "");
+
+    std::uint64_t start_iter = m_iter;
 
     while (m_file_contents[m_iter] == ' ' || m_file_contents[m_iter] == '\n' || m_file_contents[m_iter] == '\t' || m_file_contents[m_iter] == '\r') {
         if (m_file_contents[m_iter] == '\n') {
@@ -151,12 +148,12 @@ lang::Token lang::LexicalAnalyzer::next()
         m_iter++;
     }
 
+    m_slice = std::string_view(m_file_contents).substr(m_iter);
+
     if (m_iter >= m_file_contents.size())
         return makeToken(TokenType::END_OF_FILE, "");
 
-    std::string sub = m_file_contents.substr(m_iter, m_file_contents.size() - m_iter);
-
-    lang::Token token = runRegEx(sub);
+    lang::Token token = runRegEx();
     if (token.type != lang::TokenType::UNKNOWN) {
         if (token.type == lang::TokenType::ID) {
             lang::Token keywordToken = checkKeywords(token);
@@ -166,7 +163,7 @@ lang::Token lang::LexicalAnalyzer::next()
         }
         return token;
     } else {
-        lang::Token operatorToken = checkOperators(sub);
+        lang::Token operatorToken = checkOperators();
         if (operatorToken.type != lang::TokenType::UNKNOWN) {
             return operatorToken;
         }
@@ -178,29 +175,74 @@ lang::Token lang::LexicalAnalyzer::next()
     return unknownToken;
 }
 
-lang::Token lang::LexicalAnalyzer::runRegEx(const std::string &sub)
+float lang::LexicalAnalyzer::getProgress() const
 {
-    std::regex test = MAKE_REGEX(R"(^\/\*[\s\S]*?\*\/)");
-    for (auto pattern = m_RegExPatterns.begin(); pattern != m_RegExPatterns.end(); pattern++) {
-        std::smatch match;
+    return static_cast<float>(m_iter) / static_cast<float>(m_file_contents.size());
+}
 
-        if (std::regex_search(sub, match, pattern->second) && match.position() == 0) {
-            lang::Token token = makeToken(pattern->first, match.str(0));
+std::uint32_t lang::LexicalAnalyzer::MatchBlockComment(std::string_view s)
+{
+    if (auto m = REGEX_BLOCK_COMMENT(s))
+        return m.size();
+    return 0;
+}
 
-            for (char c : match.str(0)) {
-                if (c == '\n') {
-                    m_lineNumber++;
-                    m_position = 1;
-                } else if (c == '\t') {
-                    m_position += NEXT_TAB_POS(m_position);
-                } else if (c != '\r') {
-                    m_position++;
-                }
-                m_iter++;
-            }
+std::uint32_t lang::LexicalAnalyzer::MatchInlineComment(std::string_view s)
+{
+    if (auto m = REGEX_INLINE_COMMENT(s))
+        return m.size();
+    return 0;
+}
 
-            return token;
+std::uint32_t lang::LexicalAnalyzer::MatchFloatNum(std::string_view s)
+{
+    if (auto m = REGEX_FLOAT_NUM(s))
+        return m.size();
+    return 0;
+}
+
+std::uint32_t lang::LexicalAnalyzer::MatchIntNum(std::string_view s)
+{
+    if (auto m = REGEX_INT_NUM(s))
+        return m.size();
+    return 0;
+}
+
+std::uint32_t lang::LexicalAnalyzer::MatchID(std::string_view s)
+{
+    if (auto m = REGEX_ID(s))
+        return m.size();
+    return 0;
+}
+
+lang::Token lang::LexicalAnalyzer::runRegEx()
+{
+    std::uint32_t best = 0;
+    lang::TokenType best_kind{};
+
+    for (auto &r : rules) {
+        std::uint32_t n = r.match(m_slice);
+        if (n > best) {
+            best = n;
+            best_kind = r.type;
         }
+    }
+
+    if (best > 0) {
+        for (std::uint32_t i = 0; i < best; i++) {
+            if (m_file_contents[m_iter] == '\n') {
+                m_lineNumber++;
+                m_position = 1;
+            } else if (m_file_contents[m_iter] == '\t') {
+                m_position += NEXT_TAB_POS(m_position);
+            } else if (m_file_contents[m_iter] != '\r') {
+                m_position++;
+            }
+            m_iter++;
+        }
+        lang::Token token = makeToken(best_kind, std::string(m_slice.substr(0, best)));
+        m_slice.remove_prefix(best);
+        return token;
     }
 
     return makeToken(lang::TokenType::UNKNOWN, std::string(1, m_file_contents[m_iter]));
@@ -218,12 +260,13 @@ lang::Token lang::LexicalAnalyzer::checkKeywords(lang::Token &token)
     return makeToken(lang::TokenType::UNKNOWN, std::string(1, m_file_contents[m_iter]));
 }
 
-lang::Token lang::LexicalAnalyzer::checkOperators(const std::string &sub)
+lang::Token lang::LexicalAnalyzer::checkOperators()
 {
     for (const auto &op : m_Operators) {
-        if (sub.substr(0, op.first.size()) == op.first) {
+        if (m_slice.starts_with(op.first)) {
             lang::Token token = makeToken(op.second, std::string(op.first));
             m_iter += op.first.size();
+            m_slice.remove_prefix(op.first.size());
             m_position += op.first.size();
             return token;
         }

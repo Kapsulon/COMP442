@@ -7,11 +7,10 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include "ctre.hpp"
 
 #define TAB_SIZE 4
 #define NEXT_TAB_POS(pos) TAB_SIZE - ((pos - 1) % TAB_SIZE)
-
-#define MAKE_REGEX(pattern) std::regex(pattern, std::regex::ECMAScript | std::regex::optimize | std::regex::multiline)
 
 namespace lang
 {
@@ -86,22 +85,37 @@ namespace lang
         void readFile(std::string_view path);
 
         Token next();
+        float getProgress() const;
 
     private:
         std::string m_file_contents;
+        std::string_view m_slice;
         std::uint64_t m_lineNumber{ 1 };
         std::uint64_t m_position{ 1 };
         std::uint64_t m_iter{ 0 };
 
-        // static constexpr std::array<std::pair<TokenType, std::string_view>, 5> m_RegExPatterns{
-        //     { { TokenType::BLOCK_COMMENT, R"(^\/\*[\s\S]*?\*\/)" },
-        //       { TokenType::INLINE_COMMENT, R"(^\/\/.*$)" },
-        //       { TokenType::FLOAT_NUM, R"(^([1-9][0-9]*|0)\.([0-9]*[1-9]|0)(e(\+|\-)?([1-9][0-9]*|0))?)" },
-        //       { TokenType::INT_NUM, R"(^([1-9][0-9]*)|0)" },
-        //       { TokenType::ID, R"(^[a-zA-Z]([a-zA-Z]|[0-9]|_)*)" } }
-        // };
+        using LexRule = struct {
+            TokenType type;
+            std::uint32_t (*match)(std::string_view);
+        };
 
-        static const std::array<std::pair<lang::TokenType, std::regex>, 5> m_RegExPatterns;
+        static constexpr auto REGEX_BLOCK_COMMENT = ctre::multiline_starts_with<R"(\/\*[\s\S]*?\*\/)">;
+        static constexpr auto REGEX_INLINE_COMMENT = ctre::multiline_starts_with<R"(\/\/.*$)">;
+        static constexpr auto REGEX_FLOAT_NUM = ctre::starts_with<R"(([1-9][0-9]*|0)\.([0-9]*[1-9]|0)(e(\+|\-)?([1-9][0-9]*|0))?)">;
+        static constexpr auto REGEX_INT_NUM = ctre::starts_with<R"(([1-9][0-9]*)|0)">;
+        static constexpr auto REGEX_ID = ctre::starts_with<R"([a-zA-Z]([a-zA-Z]|[0-9]|_)*)">;
+
+        static std::uint32_t MatchBlockComment(std::string_view s);
+        static std::uint32_t MatchInlineComment(std::string_view s);
+        static std::uint32_t MatchFloatNum(std::string_view s);
+        static std::uint32_t MatchIntNum(std::string_view s);
+        static std::uint32_t MatchID(std::string_view s);
+
+        static constexpr LexRule rules[] = { { TokenType::BLOCK_COMMENT, MatchBlockComment },
+                                             { TokenType::INLINE_COMMENT, MatchInlineComment },
+                                             { TokenType::FLOAT_NUM, MatchFloatNum },
+                                             { TokenType::INT_NUM, MatchIntNum },
+                                             { TokenType::ID, MatchID } };
 
         static constexpr std::array<std::pair<std::string_view, TokenType>, 21> m_Keywords{
             { { "if", TokenType::IF },         { "then", TokenType::THEN },         { "else", TokenType::ELSE },       { "while", TokenType::WHILE },
@@ -137,8 +151,8 @@ namespace lang
 
         Token makeToken(TokenType type, std::string lexeme);
 
-        Token runRegEx(const std::string &sub);
+        Token runRegEx();
         Token checkKeywords(lang::Token &token);
-        Token checkOperators(const std::string &sub);
+        Token checkOperators();
     };
 } // namespace lang
