@@ -1,0 +1,12 @@
+id dot id plus intlit eof
+id dot id lpar id rpar gt floatlit eof
+id lpar id rpar dot id eq intlit div intlit eof
+id lpar id rpar dot id lpar rpar  plus id div id or id gt id eof
+id dot id lsqbr id rsqbr eof
+id lsqbr id rsqbr  dot id eof
+id lsqbr id rsqbr  dot id lsqbr id rsqbr eof
+id dot id lsqbr id rsqbr  lsqbr id rsqbr eof
+id lsqbr id rsqbr  lsqbr id rsqbr  dot id eof
+id lsqbr id rsqbr  lsqbr id rsqbr  dot id lsqbr id rsqbr  lsqbr id rsqbr eof
+id lpar id rpar dot id lsqbr id rsqbr eof
+id lpar id rpar dot id lsqbr id rsqbr  lsqbr id rsqbr eof

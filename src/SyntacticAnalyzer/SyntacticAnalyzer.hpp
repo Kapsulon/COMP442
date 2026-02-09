@@ -8,6 +8,9 @@
 
 namespace lang
 {
+    enum class NonTerminal {
+    };
+
     class SyntacticAnalyzer
     {
     public:
@@ -21,7 +24,6 @@ namespace lang
 
     private:
         LexicalAnalyzer m_lexicalAnalyzer;
-
         std::vector<Token> m_tokens;
     };
 } // namespace lang
