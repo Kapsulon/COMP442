@@ -19,7 +19,7 @@ static std::ofstream openOutputFile(const std::string &path, const std::string &
         out_path += ext;
     }
 
-    std::ofstream file(out_path);
+    std::ofstream file(out_path, std::ios::out | std::ios::binary);
 
     if (!file.is_open()) {
         throw std::runtime_error("Couldn't open output file: " + out_path);
@@ -85,6 +85,8 @@ static bool lexFile(const std::string &path, std::vector<lang::Token> &tokens)
     }
 
     auto end = std::chrono::high_resolution_clock::now();
+
+    lexer.closeFile();
 
     std::chrono::duration<double, std::milli> elapsed_ms = end - start;
 

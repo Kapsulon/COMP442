@@ -80,15 +80,22 @@ namespace lang
     {
     public:
         LexicalAnalyzer() = default;
-        ~LexicalAnalyzer() = default;
+        ~LexicalAnalyzer()
+        {
+            closeFile();
+        }
 
         std::uint64_t readFile(std::string_view path);
+        void closeFile();
 
         Token next();
         float getProgress() const;
 
     private:
-        std::string m_file_contents;
+        int m_fd{ -1 };
+        void *m_data{ nullptr };
+
+        std::string_view m_file_contents;
         std::string_view m_slice;
         std::uint64_t m_lineNumber{ 1 };
         std::uint64_t m_position{ 1 };

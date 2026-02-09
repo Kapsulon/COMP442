@@ -1,7 +1,12 @@
 #include "LexicalAnalyzer.hpp"
+#include <fcntl.h>
 #include <iterator>
 #include <regex>
 #include <string>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <unordered_map>
 #include "ctre.hpp"
 #include "spdlog/spdlog.h"
@@ -117,20 +122,44 @@ lang::Token lang::LexicalAnalyzer::makeToken(TokenType type, std::string lexeme)
 
 std::uint64_t lang::LexicalAnalyzer::readFile(std::string_view path)
 {
-    std::ifstream file(path.data());
+    m_fd = open(path.data(), O_RDONLY);
+
+    if (!m_fd) {
+        throw std::runtime_error("Failed to open file: " + std::string(path));
+    }
+
+    size_t size = lseek(m_fd, 0, SEEK_END);
+
     m_lineNumber = 1;
     m_position = 1;
     m_iter = 0;
 
-    if (!file.is_open()) {
-        throw std::runtime_error("Failed to open file: " + std::string(path));
+    if (m_data) {
+        munmap(m_data, m_file_contents.size());
+        m_data = nullptr;
     }
 
-    m_file_contents = std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+    m_data = mmap(nullptr, size, PROT_READ, MAP_PRIVATE, m_fd, 0);
+
+    m_file_contents = std::string_view(static_cast<const char *>(m_data), size);
     m_slice = std::string_view(m_file_contents);
-    file.close();
+
+    close(m_fd);
+    m_fd = -1;
 
     return m_file_contents.size();
+}
+
+void lang::LexicalAnalyzer::closeFile()
+{
+    if (m_data) {
+        munmap(m_data, m_file_contents.size());
+        m_data = nullptr;
+    }
+    if (m_fd != -1) {
+        close(m_fd);
+        m_fd = -1;
+    }
 }
 
 lang::Token lang::LexicalAnalyzer::next()
