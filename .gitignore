@@ -9,7 +9,7 @@ build/
 
 compile_commands.json
 
-test/test_1M.src
+test_1M.src
 
 bin/
 *.zip
