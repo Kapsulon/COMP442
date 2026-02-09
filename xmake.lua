@@ -19,11 +19,20 @@ add_requires(
     "ctre"
 )
 
-target("lexdriver")
+set_targetdir("bin")
+
+target("lexical-analyzer")
     set_default(true)
-    set_targetdir("bin")
     set_kind("binary")
     add_packages("spdlog", "ctre")
     add_includedirs("src")
     add_files("src/*/**.cpp")
-    add_files("src/lexdriver.cpp")
+    add_files("src/lexical_analyzer_driver.cpp")
+
+target("syntactic-analyzer")
+    set_default(true)
+    set_kind("binary")
+    add_packages("spdlog", "ctre")
+    add_includedirs("src")
+    add_files("src/*/**.cpp")
+    add_files("src/syntactic_analyzer_driver.cpp")

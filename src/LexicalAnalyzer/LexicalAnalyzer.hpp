@@ -7,7 +7,14 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-template-arg-list-after-template-kw"
+
 #include "ctre.hpp"
+
+#pragma clang diagnostic pop
 
 #define TAB_SIZE 4
 #define NEXT_TAB_POS(pos) TAB_SIZE - ((pos - 1) % TAB_SIZE)
