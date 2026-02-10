@@ -1,157 +1,157 @@
-<START> ::= <prog> 
+<START> ::= <prog>
 
-<aParams> ::= <expr> <aParamsTail> 
-<aParams> ::= EPSILON 
+<aParams> ::= <expr> <aParamsTail>
+<aParams> ::= EPSILON
 
-<aParamsTail> ::= ',' <expr> <aParamsTail> 
-<aParamsTail> ::= EPSILON 
+<aParamsTail> ::= ',' <expr> <aParamsTail>
+<aParamsTail> ::= EPSILON
 
-<addOp> ::= '+' 
-<addOp> ::= '-' 
-<addOp> ::= 'or' 
+<addOp> ::= '+'
+<addOp> ::= '-'
+<addOp> ::= 'or'
 
-<arithExpr> ::= <term> <arithExprTail> 
+<arithExpr> ::= <term> <arithExprTail>
 
-<arithExprTail> ::= <addOp> <term> <arithExprTail> 
-<arithExprTail> ::= EPSILON 
+<arithExprTail> ::= <addOp> <term> <arithExprTail>
+<arithExprTail> ::= EPSILON
 
-<arraySize> ::= '[' <arraySizeTail> 
+<arraySize> ::= '[' <arraySizeTail>
 
-<arraySizeTail> ::= 'intNum' ']' 
-<arraySizeTail> ::= ']' 
+<arraySizeTail> ::= 'intNum' ']'
+<arraySizeTail> ::= ']'
 
-<assignOp> ::= '=' 
+<assignOp> ::= '='
 
-<classDecl> ::= 'class' 'id' <classInheritOpt> '{' <classMemberList> '}' ';' 
+<classDecl> ::= 'class' 'id' <classInheritOpt> '{' <classMemberList> '}' ';'
 
-<classInheritOpt> ::= 'inherits' 'id' <classInheritTail> 
-<classInheritOpt> ::= EPSILON 
+<classInheritOpt> ::= 'inherits' 'id' <classInheritTail>
+<classInheritOpt> ::= EPSILON
 
-<classInheritTail> ::= ',' 'id' <classInheritTail> 
-<classInheritTail> ::= EPSILON 
+<classInheritTail> ::= ',' 'id' <classInheritTail>
+<classInheritTail> ::= EPSILON
 
-<classList> ::= <classDecl> <classList> 
-<classList> ::= EPSILON 
+<classList> ::= <classDecl> <classList>
+<classList> ::= EPSILON
 
-<classMemberList> ::= <visibility> <memberDecl> <classMemberList> 
-<classMemberList> ::= EPSILON 
+<classMemberList> ::= <visibility> <memberDecl> <classMemberList>
+<classMemberList> ::= EPSILON
 
-<expr> ::= <arithExpr> <exprRelTail> 
+<expr> ::= <arithExpr> <exprRelTail>
 
-<exprRelTail> ::= <relOp> <arithExpr> 
-<exprRelTail> ::= EPSILON 
+<exprRelTail> ::= <relOp> <arithExpr>
+<exprRelTail> ::= EPSILON
 
-<fParams> ::= <type> 'id' <fParamsArrayList> <fParamsTail> 
-<fParams> ::= EPSILON 
+<fParams> ::= <type> 'id' <fParamsArrayList> <fParamsTail>
+<fParams> ::= EPSILON
 
-<fParamsArrayList> ::= <arraySize> <fParamsArrayList> 
-<fParamsArrayList> ::= EPSILON 
+<fParamsArrayList> ::= <arraySize> <fParamsArrayList>
+<fParamsArrayList> ::= EPSILON
 
-<fParamsTail> ::= ',' <type> 'id' <fParamsArrayList> <fParamsTail> 
-<fParamsTail> ::= EPSILON 
+<fParamsTail> ::= ',' <type> 'id' <fParamsArrayList> <fParamsTail>
+<fParamsTail> ::= EPSILON
 
-<factor> ::= 'id' <postfixList> 
-<factor> ::= 'intNum' 
-<factor> ::= 'floatNum' 
-<factor> ::= '(' <arithExpr> ')' 
-<factor> ::= 'not' <factor> 
-<factor> ::= <sign> <factor> 
+<factor> ::= 'id' <postfixList>
+<factor> ::= 'intNum'
+<factor> ::= 'floatNum'
+<factor> ::= '(' <arithExpr> ')'
+<factor> ::= 'not' <factor>
+<factor> ::= <sign> <factor>
 
-<funcBody> ::= <localDeclOpt> 'do' <stmtList> 'end' 
+<funcBody> ::= <localDeclOpt> 'do' <stmtList> 'end'
 
-<funcDeclTail> ::= <type> ';' 
-<funcDeclTail> ::= 'void' ';' 
+<funcDeclTail> ::= <type> ';'
+<funcDeclTail> ::= 'void' ';'
 
-<funcDef> ::= <funcHead> <funcBody> ';' 
+<funcDef> ::= <funcHead> <funcBody> ';'
 
-<funcDefList> ::= <funcDef> <funcDefList> 
-<funcDefList> ::= EPSILON 
+<funcDefList> ::= <funcDef> <funcDefList>
+<funcDefList> ::= EPSILON
 
-<funcHead> ::= 'id' <funcHeadTail> 
+<funcHead> ::= 'id' <funcHeadTail>
 
-<funcHeadReturn> ::= <type> 
-<funcHeadReturn> ::= 'void' 
+<funcHeadReturn> ::= <type>
+<funcHeadReturn> ::= 'void'
 
-<funcHeadTail> ::= 'sr' 'id' '(' <fParams> ')' ':' <funcHeadReturn> 
-<funcHeadTail> ::= '(' <fParams> ')' ':' <funcHeadReturn> 
+<funcHeadTail> ::= 'sr' 'id' '(' <fParams> ')' ':' <funcHeadReturn>
+<funcHeadTail> ::= '(' <fParams> ')' ':' <funcHeadReturn>
 
-<indice> ::= '[' <arithExpr> ']' 
+<indice> ::= '[' <arithExpr> ']'
 
-<localDeclOpt> ::= 'local' <varDeclList> 
-<localDeclOpt> ::= EPSILON 
+<localDeclOpt> ::= 'local' <varDeclList>
+<localDeclOpt> ::= EPSILON
 
-<memberDecl> ::= 'id' '(' <fParams> ')' ':' <funcDeclTail> 
-<memberDecl> ::= <type_no_id> 'id' <varArrayList> ';' 
+<memberDecl> ::= 'id' '(' <fParams> ')' ':' <funcDeclTail>
+<memberDecl> ::= <type_no_id> 'id' <varArrayList> ';'
 
-<multOp> ::= '*' 
-<multOp> ::= '/' 
-<multOp> ::= 'and' 
+<multOp> ::= '*'
+<multOp> ::= '/'
+<multOp> ::= 'and'
 
-<postfix> ::= '(' <aParams> ')' 
-<postfix> ::= '[' <arithExpr> ']' 
-<postfix> ::= '.' 'id' 
+<postfix> ::= '(' <aParams> ')'
+<postfix> ::= '[' <arithExpr> ']'
+<postfix> ::= '.' 'id'
 
-<postfixList> ::= <postfix> <postfixList> 
-<postfixList> ::= EPSILON 
+<postfixList> ::= <postfix> <postfixList>
+<postfixList> ::= EPSILON
 
-<postfixListNoCall> ::= <postfixNoCall> <postfixListNoCall> 
-<postfixListNoCall> ::= EPSILON 
+<postfixListNoCall> ::= <postfixNoCall> <postfixListNoCall>
+<postfixListNoCall> ::= EPSILON
 
-<postfixNoCall> ::= '[' <arithExpr> ']' 
-<postfixNoCall> ::= '.' 'id' 
+<postfixNoCall> ::= '[' <arithExpr> ']'
+<postfixNoCall> ::= '.' 'id'
 
-<prog> ::= <classList> <funcDefList> 'main' <funcBody> 
+<prog> ::= <classList> <funcDefList> 'main' <funcBody>
 
-<relOp> ::= 'eq' 
-<relOp> ::= 'neq' 
-<relOp> ::= 'lt' 
-<relOp> ::= 'gt' 
-<relOp> ::= 'leq' 
-<relOp> ::= 'geq' 
+<relOp> ::= 'eq'
+<relOp> ::= 'neq'
+<relOp> ::= 'lt'
+<relOp> ::= 'gt'
+<relOp> ::= 'leq'
+<relOp> ::= 'geq'
 
-<sign> ::= '+' 
-<sign> ::= '-' 
+<sign> ::= '+'
+<sign> ::= '-'
 
-<statBlock> ::= 'do' <stmtList> 'end' 
-<statBlock> ::= <statement> 
-<statBlock> ::= EPSILON 
+<statBlock> ::= 'do' <stmtList> 'end'
+<statBlock> ::= <statement>
+<statBlock> ::= EPSILON
 
-<statement> ::= 'id' <postfixList> <statementEnd> 
-<statement> ::= 'if' '(' <expr> ')' 'then' <statBlock> 'else' <statBlock> ';' 
-<statement> ::= 'while' '(' <expr> ')' <statBlock> ';' 
-<statement> ::= 'read' '(' <variable> ')' ';' 
-<statement> ::= 'write' '(' <expr> ')' ';' 
-<statement> ::= 'return' '(' <expr> ')' ';' 
+<statement> ::= 'id' <postfixList> <statementEnd>
+<statement> ::= 'if' '(' <expr> ')' 'then' <statBlock> 'else' <statBlock> ';'
+<statement> ::= 'while' '(' <expr> ')' <statBlock> ';'
+<statement> ::= 'read' '(' <variable> ')' ';'
+<statement> ::= 'write' '(' <expr> ')' ';'
+<statement> ::= 'return' '(' <expr> ')' ';'
 
-<statementEnd> ::= <assignOp> <expr> ';' 
-<statementEnd> ::= ';' 
+<statementEnd> ::= <assignOp> <expr> ';'
+<statementEnd> ::= ';'
 
-<stmtList> ::= <statement> <stmtList> 
-<stmtList> ::= EPSILON 
+<stmtList> ::= <statement> <stmtList>
+<stmtList> ::= EPSILON
 
-<term> ::= <factor> <termTail> 
+<term> ::= <factor> <termTail>
 
-<termTail> ::= <multOp> <factor> <termTail> 
-<termTail> ::= EPSILON 
+<termTail> ::= <multOp> <factor> <termTail>
+<termTail> ::= EPSILON
 
-<type> ::= 'integer' 
-<type> ::= 'float' 
-<type> ::= 'id' 
+<type> ::= 'integer'
+<type> ::= 'float'
+<type> ::= 'id'
 
-<type_no_id> ::= 'integer' 
-<type_no_id> ::= 'float' 
+<type_no_id> ::= 'integer'
+<type_no_id> ::= 'float'
 
-<varArrayList> ::= <arraySize> <varArrayList> 
-<varArrayList> ::= EPSILON 
+<varArrayList> ::= <arraySize> <varArrayList>
+<varArrayList> ::= EPSILON
 
-<varDecl> ::= <type> 'id' <varArrayList> ';' 
+<varDecl> ::= <type> 'id' <varArrayList> ';'
 
-<varDeclList> ::= <varDecl> <varDeclList> 
-<varDeclList> ::= EPSILON 
+<varDeclList> ::= <varDecl> <varDeclList>
+<varDeclList> ::= EPSILON
 
-<variable> ::= 'id' <postfixListNoCall> 
+<variable> ::= 'id' <postfixListNoCall>
 
-<visibility> ::= 'public' 
-<visibility> ::= 'private' 
+<visibility> ::= 'public'
+<visibility> ::= 'private'
 
 
