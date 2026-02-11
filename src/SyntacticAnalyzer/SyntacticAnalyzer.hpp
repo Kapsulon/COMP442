@@ -1,9 +1,11 @@
 #pragma once
 
+#include <cstddef>
 #include <stack>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
+#include <variant>
 #include <vector>
 
 #include "LexicalAnalyzer/LexicalAnalyzer.hpp"
@@ -139,7 +141,13 @@ namespace lang
     using Production = std::vector<Symbol>;
     using Grammar = std::unordered_map<NonTerminal, std::vector<Production>>;
 
-    using FirstSet = std::unordered_map<NonTerminal, std::unordered_set<TokenType>>;
+    struct EpsilonTag {
+        friend constexpr bool operator==(EpsilonTag, EpsilonTag) = default;
+    };
+    constexpr EpsilonTag EPS{};
+
+    using FirstSymbol = std::variant<TokenType, EpsilonTag>;
+    using FirstSet = std::unordered_map<NonTerminal, std::unordered_set<FirstSymbol>>;
     using FollowSet = std::unordered_map<NonTerminal, std::unordered_set<TokenType>>;
 
     using ParseTable = std::unordered_map<NonTerminal, std::unordered_map<TokenType, Production>>;
@@ -162,6 +170,8 @@ namespace lang
         void closeFile();
         void lex();
 
+        bool isEpsilon(const FirstSymbol &s);
+
         FirstSet generateFirstSet();
         FollowSet generateFollowSet();
         ParseTable generateParseTable();
@@ -172,3 +182,13 @@ namespace lang
         const ParseTable m_parseTable;
     };
 } // namespace lang
+
+namespace std
+{
+    template <> struct hash<lang::EpsilonTag> {
+        size_t operator()(const lang::EpsilonTag &) const noexcept
+        {
+            return static_cast<size_t>(0x9E3779B97F4A7C15ull);
+        }
+    };
+} // namespace std

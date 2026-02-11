@@ -358,6 +358,11 @@ namespace lang
     };
     // clang-format on
 
+    bool SyntacticAnalyzer::isEpsilon(const FirstSymbol &s)
+    {
+        return std::holds_alternative<EpsilonTag>(s);
+    }
+
     FirstSet SyntacticAnalyzer::generateFirstSet()
     {
         FirstSet first;
@@ -368,26 +373,44 @@ namespace lang
 
             for (auto &[A, prods] : grammar) {
                 for (auto &p : prods) {
-                    if (p.empty())
+
+                    if (p.empty()) {
+                        changed |= first[A].insert(EPS).second;
                         continue;
-
-                    auto &s = p.front();
-
-                    if (s.is_terminal) {
-                        changed |= first[A].insert(s.term).second;
-                    } else {
-                        for (auto t : first[s.nonterm]) changed |= first[A].insert(t).second;
                     }
+
+                    bool allNullable = true;
+
+                    for (auto &sym : p) {
+                        if (sym.is_terminal) {
+                            changed |= first[A].insert(sym.term).second;
+                            allNullable = false;
+                            break;
+                        } else {
+                            for (auto &f : first[sym.nonterm]) {
+                                if (!isEpsilon(f))
+                                    changed |= first[A].insert(f).second;
+                            }
+
+                            if (!first[sym.nonterm].contains(EPS)) {
+                                allNullable = false;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (allNullable)
+                        changed |= first[A].insert(EPS).second;
                 }
             }
         }
+
         return first;
     }
 
     FollowSet SyntacticAnalyzer::generateFollowSet()
     {
         FollowSet follow;
-
         follow[NonTerminal::prog].insert(TokenType::END_OF_FILE);
 
         bool changed = true;
@@ -401,14 +424,28 @@ namespace lang
                         if (!p[i].is_terminal) {
                             auto B = p[i].nonterm;
 
-                            if (i + 1 < p.size()) {
-                                auto &next = p[i + 1];
+                            bool nullableSuffix = true;
 
-                                if (next.is_terminal)
+                            for (size_t j = i + 1; j < p.size(); ++j) {
+                                auto &next = p[j];
+
+                                if (next.is_terminal) {
                                     changed |= follow[B].insert(next.term).second;
-                                else
-                                    for (auto t : m_firstSet.at(next.nonterm)) changed |= follow[B].insert(t).second;
-                            } else {
+                                    nullableSuffix = false;
+                                    break;
+                                }
+
+                                for (auto &f : m_firstSet.at(next.nonterm))
+                                    if (!isEpsilon(f))
+                                        changed |= follow[B].insert(std::get<TokenType>(f)).second;
+
+                                if (!m_firstSet.at(next.nonterm).contains(EPS)) {
+                                    nullableSuffix = false;
+                                    break;
+                                }
+                            }
+
+                            if (nullableSuffix) {
                                 for (auto t : follow[A]) changed |= follow[B].insert(t).second;
                             }
                         }
@@ -426,15 +463,32 @@ namespace lang
 
         for (auto &[A, prods] : grammar) {
             for (auto &p : prods) {
-                if (!p.empty()) {
-                    auto &s = p.front();
 
-                    if (s.is_terminal) {
-                        table[A][s.term] = p;
-                    } else {
-                        for (auto t : m_firstSet.at(s.nonterm)) table[A][t] = p;
+                if (p.empty()) {
+                    for (auto t : m_followSet.at(A)) table[A][t] = p;
+                    continue;
+                }
+
+                bool nullable = true;
+
+                for (auto &sym : p) {
+                    if (sym.is_terminal) {
+                        table[A][sym.term] = p;
+                        nullable = false;
+                        break;
                     }
-                } else {
+
+                    for (auto &f : m_firstSet.at(sym.nonterm))
+                        if (!isEpsilon(f))
+                            table[A][std::get<TokenType>(f)] = p;
+
+                    if (!m_firstSet.at(sym.nonterm).contains(EPS)) {
+                        nullable = false;
+                        break;
+                    }
+                }
+
+                if (nullable) {
                     for (auto t : m_followSet.at(A)) table[A][t] = p;
                 }
             }
@@ -498,7 +552,10 @@ namespace lang
             std::string line = std::format("FIRST(<{}>) = {{ ", to_string(nonterm));
             std::uint32_t count = 0;
             for (auto t : tokens) {
-                line += std::format("'{}'", tokenTypeToString(t));
+                if (isEpsilon(t))
+                    line += "EPSILON";
+                else
+                    line += std::format("'{}'", tokenTypeToString(std::get<TokenType>(t)));
                 if (++count != tokens.size())
                     line += ", ";
             }

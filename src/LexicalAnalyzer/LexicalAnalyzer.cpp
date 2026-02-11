@@ -110,6 +110,8 @@ std::string lang::tokenTypeToString(TokenType type)
             return "VOID";
         case lang::TokenType::MAIN:
             return "MAIN";
+        case lang::TokenType::END_OF_FILE:
+            return "$";
         default:
             return "UNKNOWN";
     }
