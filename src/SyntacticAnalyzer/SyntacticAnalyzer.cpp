@@ -160,7 +160,7 @@ namespace lang
                 {Symbol::T(TokenType::ID), Symbol::N(NonTerminal::postfixList)},
                 {Symbol::T(TokenType::INT_NUM)},
                 {Symbol::T(TokenType::FLOAT_NUM)},
-                {Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::arithExpr), Symbol::T(TokenType::OPEN_PARENTHESIS)},
+                {Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::arithExpr), Symbol::T(TokenType::CLOSE_PARENTHESIS)},
                 {Symbol::T(TokenType::NOT), Symbol::N(NonTerminal::factor)},
                 {Symbol::N(NonTerminal::sign), Symbol::N(NonTerminal::factor)}
             }
@@ -200,8 +200,8 @@ namespace lang
         },
         {
             NonTerminal::funcHeadTail, {
-                {Symbol::T(TokenType::DOUBLE_COLON), Symbol::T(TokenType::ID), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::fParams), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::T(TokenType::COLON), Symbol::N(NonTerminal::funcHeadReturn)},
-                {Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::fParams), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::T(TokenType::COLON), Symbol::N(NonTerminal::funcHeadReturn)}
+                {Symbol::T(TokenType::DOUBLE_COLON), Symbol::T(TokenType::ID), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::fParams), Symbol::T(TokenType::CLOSE_PARENTHESIS), Symbol::T(TokenType::COLON), Symbol::N(NonTerminal::funcHeadReturn)},
+                {Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::fParams), Symbol::T(TokenType::CLOSE_PARENTHESIS), Symbol::T(TokenType::COLON), Symbol::N(NonTerminal::funcHeadReturn)}
             }
         },
         {
@@ -217,7 +217,7 @@ namespace lang
         },
         {
             NonTerminal::memberDecl, {
-                {Symbol::T(TokenType::ID), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::fParams), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::T(TokenType::COLON), Symbol::N(NonTerminal::funcDeclTail)},
+                {Symbol::T(TokenType::ID), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::fParams), Symbol::T(TokenType::CLOSE_PARENTHESIS), Symbol::T(TokenType::COLON), Symbol::N(NonTerminal::funcDeclTail)},
                 {Symbol::N(NonTerminal::type_no_id), Symbol::T(TokenType::ID), Symbol::N(NonTerminal::varArrayList), Symbol::T(TokenType::SEMICOLON)}
             }
         },
@@ -230,7 +230,7 @@ namespace lang
         },
         {
             NonTerminal::postfix, {
-                {Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::aParams), Symbol::T(TokenType::OPEN_PARENTHESIS)},
+                {Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::aParams), Symbol::T(TokenType::CLOSE_PARENTHESIS)},
                 {Symbol::T(TokenType::OPEN_BRACKET), Symbol::N(NonTerminal::arithExpr), Symbol::T(TokenType::CLOSE_BRACKET)},
                 {Symbol::T(TokenType::DOT), Symbol::T(TokenType::ID)}
             }
@@ -284,11 +284,11 @@ namespace lang
         {
             NonTerminal::statement, {
                 {Symbol::T(TokenType::ID), Symbol::N(NonTerminal::postfixList), Symbol::N(NonTerminal::statementEnd)},
-                {Symbol::T(TokenType::IF), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::expr), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::T(TokenType::THEN), Symbol::N(NonTerminal::statBlock), Symbol::T(TokenType::ELSE), Symbol::N(NonTerminal::statBlock), Symbol::T(TokenType::SEMICOLON)},
-                {Symbol::T(TokenType::WHILE), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::expr), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::statBlock), Symbol::T(TokenType::SEMICOLON)},
-                {Symbol::T(TokenType::READ), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::variable), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::T(TokenType::SEMICOLON)},
-                {Symbol::T(TokenType::WRITE), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::expr), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::T(TokenType::SEMICOLON)},
-                {Symbol::T(TokenType::RETURN), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::expr), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::T(TokenType::SEMICOLON)}
+                {Symbol::T(TokenType::IF), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::expr), Symbol::T(TokenType::CLOSE_PARENTHESIS), Symbol::T(TokenType::THEN), Symbol::N(NonTerminal::statBlock), Symbol::T(TokenType::ELSE), Symbol::N(NonTerminal::statBlock), Symbol::T(TokenType::SEMICOLON)},
+                {Symbol::T(TokenType::WHILE), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::expr), Symbol::T(TokenType::CLOSE_PARENTHESIS), Symbol::N(NonTerminal::statBlock), Symbol::T(TokenType::SEMICOLON)},
+                {Symbol::T(TokenType::READ), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::variable), Symbol::T(TokenType::CLOSE_PARENTHESIS), Symbol::T(TokenType::SEMICOLON)},
+                {Symbol::T(TokenType::WRITE), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::expr), Symbol::T(TokenType::CLOSE_PARENTHESIS), Symbol::T(TokenType::SEMICOLON)},
+                {Symbol::T(TokenType::RETURN), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::expr), Symbol::T(TokenType::CLOSE_PARENTHESIS), Symbol::T(TokenType::SEMICOLON)}
             }
         },
         {
@@ -549,17 +549,19 @@ namespace lang
         std::string res;
 
         for (auto &[nonterm, tokens] : m_firstSet) {
-            std::string line = std::format("FIRST(<{}>) = {{ ", to_string(nonterm));
+            std::string line = std::format("FIRST(<{}>)= [", to_string(nonterm));
             std::uint32_t count = 0;
             for (auto t : tokens) {
                 if (isEpsilon(t))
                     line += "EPSILON";
+                else if (std::get<TokenType>(t) == TokenType::END_OF_FILE)
+                    line += std::format("{}", tokenTypeToCompString(std::get<TokenType>(t)));
                 else
-                    line += std::format("'{}'", tokenTypeToString(std::get<TokenType>(t)));
+                    line += std::format("'{}'", tokenTypeToCompString(std::get<TokenType>(t)));
                 if (++count != tokens.size())
                     line += ", ";
             }
-            line += " }\n";
+            line += "]\n";
             res += line;
         }
 
@@ -571,14 +573,17 @@ namespace lang
         std::string res;
 
         for (auto &[nonterm, tokens] : m_followSet) {
-            std::string line = std::format("FOLLOW(<{}>) = {{ ", to_string(nonterm));
+            std::string line = std::format("FOLLOW(<{}>)= [", to_string(nonterm));
             std::uint32_t count = 0;
             for (auto t : tokens) {
-                line += std::format("'{}'", tokenTypeToString(t));
+                if (t == TokenType::END_OF_FILE)
+                    line += std::format("{}", tokenTypeToCompString(t));
+                else
+                    line += std::format("'{}'", tokenTypeToCompString(t));
                 if (++count != tokens.size())
                     line += ", ";
             }
-            line += " }\n";
+            line += "]\n";
             res += line;
         }
 

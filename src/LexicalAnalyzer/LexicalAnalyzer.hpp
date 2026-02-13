@@ -81,6 +81,7 @@ namespace lang
         std::uint64_t pos;
     };
 
+    std::string tokenTypeToCompString(TokenType type);
     std::string tokenTypeToString(TokenType type);
 
     class LexicalAnalyzer

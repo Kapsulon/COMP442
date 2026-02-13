@@ -11,6 +11,112 @@
 #include "ctre.hpp"
 #include "spdlog/spdlog.h"
 
+std::string lang::tokenTypeToCompString(TokenType type)
+{
+    switch (type) {
+        case lang::TokenType::BLOCK_COMMENT:
+            return "BLOCK_COMMENT";
+        case lang::TokenType::INLINE_COMMENT:
+            return "INLINE_COMMENT";
+        case lang::TokenType::INT_NUM:
+            return "intNum";
+        case lang::TokenType::FLOAT_NUM:
+            return "floatNum";
+        case lang::TokenType::ID:
+            return "id";
+        case lang::TokenType::EQUAL:
+            return "eq";
+        case lang::TokenType::NOT_EQUAL:
+            return "neq";
+        case lang::TokenType::LESS_THAN:
+            return "lt";
+        case lang::TokenType::GREATER_THAN:
+            return "gt";
+        case lang::TokenType::LESS_EQUAL:
+            return "leq";
+        case lang::TokenType::GREATER_EQUAL:
+            return "geq";
+        case lang::TokenType::PLUS:
+            return "+";
+        case lang::TokenType::MINUS:
+            return "-";
+        case lang::TokenType::MULTIPLY:
+            return "*";
+        case lang::TokenType::DIVIDE:
+            return "/";
+        case lang::TokenType::ASSIGN:
+            return "=";
+        case lang::TokenType::OPEN_PARENTHESIS:
+            return "(";
+        case lang::TokenType::CLOSE_PARENTHESIS:
+            return ")";
+        case lang::TokenType::OPEN_BRACE:
+            return "{";
+        case lang::TokenType::CLOSE_BRACE:
+            return "}";
+        case lang::TokenType::OPEN_BRACKET:
+            return "[";
+        case lang::TokenType::CLOSE_BRACKET:
+            return "]";
+        case lang::TokenType::SEMICOLON:
+            return ";";
+        case lang::TokenType::COMMA:
+            return ",";
+        case lang::TokenType::DOT:
+            return ".";
+        case lang::TokenType::COLON:
+            return ":";
+        case lang::TokenType::DOUBLE_COLON:
+            return "sr";
+        case lang::TokenType::IF:
+            return "if";
+        case lang::TokenType::THEN:
+            return "then";
+        case lang::TokenType::ELSE:
+            return "else";
+        case lang::TokenType::WHILE:
+            return "while";
+        case lang::TokenType::CLASS:
+            return "class";
+        case lang::TokenType::INTEGER:
+            return "integer";
+        case lang::TokenType::FLOAT:
+            return "float";
+        case lang::TokenType::DO:
+            return "do";
+        case lang::TokenType::END:
+            return "end";
+        case lang::TokenType::PUBLIC:
+            return "public";
+        case lang::TokenType::PRIVATE:
+            return "private";
+        case lang::TokenType::OR:
+            return "or";
+        case lang::TokenType::AND:
+            return "and";
+        case lang::TokenType::NOT:
+            return "not";
+        case lang::TokenType::READ:
+            return "read";
+        case lang::TokenType::WRITE:
+            return "write";
+        case lang::TokenType::RETURN:
+            return "return";
+        case lang::TokenType::INHERITS:
+            return "inherits";
+        case lang::TokenType::LOCAL:
+            return "local";
+        case lang::TokenType::VOID:
+            return "void";
+        case lang::TokenType::MAIN:
+            return "main";
+        case lang::TokenType::END_OF_FILE:
+            return "$";
+        default:
+            return "UNKNOWN";
+    }
+}
+
 std::string lang::tokenTypeToString(TokenType type)
 {
     switch (type) {
