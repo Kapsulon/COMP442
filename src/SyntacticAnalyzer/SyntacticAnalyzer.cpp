@@ -411,7 +411,13 @@ namespace lang
     FollowSet SyntacticAnalyzer::generateFollowSet()
     {
         FollowSet follow;
-        follow[NonTerminal::prog].insert(TokenType::END_OF_FILE);
+
+        for (const auto &[A, _] : grammar) {
+            (void)_;
+            follow[A];
+        }
+
+        follow[NonTerminal::START].insert(TokenType::END_OF_FILE);
 
         bool changed = true;
 
