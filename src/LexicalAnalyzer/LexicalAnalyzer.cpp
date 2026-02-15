@@ -226,7 +226,7 @@ std::string lang::tokenTypeToString(TokenType type)
 
 lang::Token lang::LexicalAnalyzer::makeToken(TokenType type, std::string lexeme)
 {
-    return { .type = type, .lexeme = lexeme, .line = m_lineNumber, .pos = m_position - lexeme.size() };
+    return { .type = type, .lexeme = lexeme, .line = m_lineNumber, .pos = m_position - lexeme.size(), .file_path = m_filePath };
 }
 
 std::uint64_t lang::LexicalAnalyzer::readFile(std::string_view path)
@@ -313,7 +313,6 @@ lang::Token lang::LexicalAnalyzer::next()
         return makeToken(TokenType::END_OF_FILE, "");
 
     lang::Token token = runRegEx();
-    token.file_path = m_filePath;
     if (token.type != lang::TokenType::UNKNOWN) [[likely]] {
         if (token.type == lang::TokenType::ID) {
             lang::Token keywordToken = checkKeywords(token);

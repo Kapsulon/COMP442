@@ -37,7 +37,6 @@ namespace lang
             m_tokens.push_back(token);
 
             if (token.type == TokenType::END_OF_FILE) {
-                m_tokens.push_back(token);
                 break;
             }
         }
@@ -177,7 +176,7 @@ namespace lang
         },
         {
             NonTerminal::funcDef, {
-                {Symbol::N(NonTerminal::funcHead), Symbol::N(NonTerminal::funcBody), Symbol::T(TokenType::SEMICOLON)}
+                {Symbol::N(NonTerminal::funcHead), Symbol::N(NonTerminal::funcBody)}
             }
         },
         {
