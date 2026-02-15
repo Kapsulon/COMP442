@@ -10,6 +10,10 @@
 
 #include "LexicalAnalyzer/LexicalAnalyzer.hpp"
 
+// clang-format off
+#define EPSILON {}
+// clang-format on
+
 namespace lang
 {
     enum class NonTerminal {
@@ -140,7 +144,6 @@ namespace lang
 
     using Production = std::vector<Symbol>;
     using Grammar = std::unordered_map<NonTerminal, std::vector<Production>>;
-
     struct EpsilonTag {
         friend constexpr bool operator==(EpsilonTag, EpsilonTag) = default;
     };

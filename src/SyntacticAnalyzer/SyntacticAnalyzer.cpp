@@ -52,13 +52,13 @@ namespace lang
         {
             NonTerminal::aParams, {
                 {Symbol::N(NonTerminal::expr), Symbol::N(NonTerminal::aParamsTail)},
-                {}
+                EPSILON
             }
         },
         {
             NonTerminal::aParamsTail, {
                 {Symbol::T(TokenType::COMMA), Symbol::N(NonTerminal::expr), Symbol::N(NonTerminal::aParamsTail)},
-                {}
+                EPSILON
             }
         },
         {
@@ -76,7 +76,7 @@ namespace lang
         {
             NonTerminal::arithExprTail, {
                 {Symbol::N(NonTerminal::addOp), Symbol::N(NonTerminal::term), Symbol::N(NonTerminal::arithExprTail)},
-                {}
+                EPSILON
             }
         },
         {
@@ -103,25 +103,25 @@ namespace lang
         {
             NonTerminal::classInheritOpt, {
                 {Symbol::T(TokenType::INHERITS), Symbol::T(TokenType::ID), Symbol::N(NonTerminal::classInheritTail)},
-                {}
+                EPSILON
             }
         },
         {
             NonTerminal::classInheritTail, {
                 {Symbol::T(TokenType::COMMA), Symbol::T(TokenType::ID), Symbol::N(NonTerminal::classInheritTail)},
-                {}
+                EPSILON
             }
         },
         {
             NonTerminal::classList, {
                 {Symbol::N(NonTerminal::classDecl), Symbol::N(NonTerminal::classList)},
-                {}
+                EPSILON
             }
         },
         {
             NonTerminal::classMemberList, {
                 {Symbol::N(NonTerminal::visibility), Symbol::N(NonTerminal::memberDecl), Symbol::N(NonTerminal::classMemberList)},
-                {}
+                EPSILON
             }
         },
         {
@@ -132,25 +132,25 @@ namespace lang
         {
             NonTerminal::exprRelTail, {
                 {Symbol::N(NonTerminal::relOp), Symbol::N(NonTerminal::arithExpr)},
-                {}
+                EPSILON
             }
         },
         {
             NonTerminal::fParams, {
                 {Symbol::N(NonTerminal::type), Symbol::T(TokenType::ID), Symbol::N(NonTerminal::fParamsArrayList), Symbol::N(NonTerminal::fParamsTail)},
-                {}
+                EPSILON
             }
         },
         {
             NonTerminal::fParamsArrayList, {
                 {Symbol::N(NonTerminal::arraySize), Symbol::N(NonTerminal::fParamsArrayList)},
-                {}
+                EPSILON
             }
         },
         {
             NonTerminal::fParamsTail, {
                 {Symbol::T(TokenType::COMMA), Symbol::N(NonTerminal::type), Symbol::T(TokenType::ID), Symbol::N(NonTerminal::fParamsArrayList), Symbol::N(NonTerminal::fParamsTail)},
-                {}
+                EPSILON
             }
         },
         {
@@ -182,7 +182,7 @@ namespace lang
         {
             NonTerminal::funcDefList, {
                 {Symbol::N(NonTerminal::funcDef), Symbol::N(NonTerminal::funcDefList)},
-                {}
+                EPSILON
             }
         },
         {
@@ -210,7 +210,7 @@ namespace lang
         {
             NonTerminal::localDeclOpt, {
                 {Symbol::T(TokenType::LOCAL), Symbol::N(NonTerminal::varDeclList)},
-                {}
+                EPSILON
             }
         },
         {
@@ -236,13 +236,13 @@ namespace lang
         {
             NonTerminal::postfixList, {
                 {Symbol::N(NonTerminal::postfix), Symbol::N(NonTerminal::postfixList)},
-                {}
+                EPSILON
             }
         },
         {
             NonTerminal::postfixListNoCall, {
                 {Symbol::N(NonTerminal::postfixNoCall), Symbol::N(NonTerminal::postfixListNoCall)},
-                {}
+                EPSILON
             }
         },
         {
@@ -276,7 +276,7 @@ namespace lang
             NonTerminal::statBlock, {
                 {Symbol::T(TokenType::DO), Symbol::N(NonTerminal::stmtList), Symbol::T(TokenType::END)},
                 {Symbol::N(NonTerminal::statement)},
-                {}
+                EPSILON
             }
         },
         {
@@ -298,7 +298,7 @@ namespace lang
         {
             NonTerminal::stmtList, {
                 {Symbol::N(NonTerminal::statement), Symbol::N(NonTerminal::stmtList)},
-                {}
+                EPSILON
             }
         },
         {
@@ -309,7 +309,7 @@ namespace lang
         {
             NonTerminal::termTail, {
                 {Symbol::N(NonTerminal::multOp), Symbol::N(NonTerminal::factor), Symbol::N(NonTerminal::termTail)},
-                {}
+                EPSILON
             }
         },
         {
@@ -328,7 +328,7 @@ namespace lang
         {
             NonTerminal::varArrayList, {
                 {Symbol::N(NonTerminal::arraySize), Symbol::N(NonTerminal::varArrayList)},
-                {}
+                EPSILON
             }
         },
         {
@@ -339,7 +339,7 @@ namespace lang
         {
             NonTerminal::varDeclList, {
                 {Symbol::N(NonTerminal::varDecl), Symbol::N(NonTerminal::varDeclList)},
-                {}
+                EPSILON
             }
         },
         {
