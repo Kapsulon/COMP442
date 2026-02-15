@@ -329,10 +329,10 @@ lang::Token lang::LexicalAnalyzer::next()
         }
     }
 
-    lang::Token unknownToken = makeToken(lang::TokenType::UNKNOWN, std::string(1, m_fileContents[m_iter]));
+    std::string unknownLexeme(1, m_fileContents[m_iter]);
     m_iter++;
     m_position++;
-    return unknownToken;
+    return makeToken(lang::TokenType::UNKNOWN, std::move(unknownLexeme));
 }
 
 float lang::LexicalAnalyzer::getProgress() const
@@ -448,11 +448,10 @@ lang::Token lang::LexicalAnalyzer::checkOperators()
 {
     for (const auto &op : m_Operators) {
         if (m_slice.starts_with(op.first)) {
-            lang::Token token = makeToken(op.second, std::string(op.first));
             m_iter += op.first.size();
             m_slice.remove_prefix(op.first.size());
             m_position += op.first.size();
-            return token;
+            return makeToken(op.second, std::string(op.first));
         }
     }
 

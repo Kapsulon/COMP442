@@ -541,7 +541,7 @@ namespace lang
         }
 
         if (idx != m_tokens.size()) {
-            error(m_tokens[idx], "expected end of file, but got extra tokens");
+            error(m_tokens[idx], std::format("expected end of file, but got {} extra tokens", m_tokens.size() - idx));
         }
 
         return;
@@ -551,11 +551,9 @@ namespace lang
     {
         std::string res = "";
 
-        spdlog::error("test (pos: {}): {}", token.pos, token.lexeme);
-
-        for (std::uint32_t i = 0; i < token.pos; i++) res.append(" ");
+        for (std::uint32_t i = 1; i < token.pos; i++) res.append(" ");
         res.append("^");
-        for (std::uint32_t i = token.pos + 1; i < token.lexeme.size(); i++) res.append("~");
+        for (std::uint32_t i = token.pos + 1; i <= token.lexeme.size(); i++) res.append("~");
 
         return res;
     }
