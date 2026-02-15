@@ -2,7 +2,7 @@
 #include "SyntacticAnalyzer/SyntacticAnalyzer.hpp"
 #include "spdlog/spdlog.h"
 
-#define OUTPUT_SETS 0
+#define OUTPUT_SETS 1
 
 int main(int argc, char **argv)
 {
@@ -19,8 +19,8 @@ int main(int argc, char **argv)
     for (std::uint64_t idx = 1; idx != argc; idx++) {
         syntacticAnalyzer.openFile(argv[idx]);
 #if OUTPUT_SETS
-        std::ofstream first(std::string(argv[idx]) + ".out.first");
-        std::ofstream follow(std::string(argv[idx]) + ".out.follow");
+        std::ofstream first("out.grm.first");
+        std::ofstream follow("out.grm.follow");
         first << syntacticAnalyzer.getFirstSet();
         follow << syntacticAnalyzer.getFollowSet();
         first.close();
