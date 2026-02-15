@@ -2,7 +2,7 @@
 #include "SyntacticAnalyzer/SyntacticAnalyzer.hpp"
 #include "spdlog/spdlog.h"
 
-#define OUTPUT_SETS 1
+#define OUTPUT_SETS 0
 
 int main(int argc, char **argv)
 {
