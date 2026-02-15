@@ -552,20 +552,40 @@ namespace lang
 
     static std::string underlineProblematicToken(const Token &token)
     {
-        std::string res = "";
-
-        for (std::uint32_t i = 1; i < token.pos; i++) res.append(" ");
-        res.append("^");
-        for (std::uint32_t i = token.pos + 1; i <= token.lexeme.size(); i++) res.append("~");
-
+        std::string res;
+        if (token.pos > 1)
+            res.append(static_cast<size_t>(token.pos - 1), ' ');
+        res.push_back('^');
+        if (token.lexeme.size() > 1)
+            res.append(token.lexeme.size() - 1, '~');
         return res;
+    }
+
+    static std::string expandTabs(std::string_view line)
+    {
+        std::string out;
+        out.reserve(line.size());
+
+        std::uint32_t col = 1;
+        for (char ch : line) {
+            if (ch == '\r')
+                continue;
+            if (ch == '\t') {
+                auto spaces = static_cast<size_t>(NEXT_TAB_POS(col));
+                out.append(spaces, ' ');
+                col += static_cast<std::uint32_t>(spaces);
+            } else {
+                out.push_back(ch);
+                col += 1;
+            }
+        }
+
+        return out;
     }
 
     void SyntacticAnalyzer::error(const Token &token, const std::string &message)
     {
-        auto line = m_lexicalAnalyzer.getLine(token.line);
-        while (!line.empty() && std::isspace(line[0])) line.remove_prefix(1);
-
+        std::string line = expandTabs(m_lexicalAnalyzer.getLine(token.line));
         std::string underline = underlineProblematicToken(token);
 
         spdlog::error(
