@@ -510,30 +510,36 @@ namespace lang
         std::uint32_t idx = 0;
 
         while (!st.empty()) {
-            auto x = st.top();
-            auto a = m_tokens[idx];
+            auto nonTerminal = st.top();
+            auto token = m_tokens[idx];
 
-            if (x.is_terminal) {
-                if (x.term == a.type) {
+            if (nonTerminal.is_terminal) {
+                if (nonTerminal.term == token.type) [[likely]] {
                     st.pop();
                     idx++;
                 } else {
                     error(
-                        a,
+                        token,
                         std::format(
-                            "expected token of type {}, but got token of type {}", lang::tokenTypeToString(x.term), lang::tokenTypeToString(a.type), idx));
+                            "expected token of type {}, but got token of type {} (lexeme: {})",
+                            lang::tokenTypeToString(nonTerminal.term),
+                            lang::tokenTypeToString(token.type),
+                            token.lexeme));
                     return;
                 }
             } else {
-                if (m_parseTable.contains(x.nonterm) && m_parseTable.at(x.nonterm).contains(a.type)) {
+                if (m_parseTable.contains(nonTerminal.nonterm) && m_parseTable.at(nonTerminal.nonterm).contains(token.type)) [[likely]] {
                     st.pop();
-                    auto &prod = m_parseTable.at(x.nonterm).at(a.type);
+                    auto &prod = m_parseTable.at(nonTerminal.nonterm).at(token.type);
                     for (auto it = prod.rbegin(); it != prod.rend(); ++it) st.push(*it);
                 } else {
                     error(
-                        a,
+                        token,
                         std::format(
-                            "no production for non-terminal <{}> with lookahead token of type {}", to_string(x.nonterm), lang::tokenTypeToString(a.type), idx));
+                            "no production for non-terminal <{}> with lookahead token of type {}",
+                            to_string(nonTerminal.nonterm),
+                            lang::tokenTypeToString(token.type),
+                            idx));
                     return;
                 }
             }
@@ -542,8 +548,6 @@ namespace lang
         if (idx != m_tokens.size()) {
             error(m_tokens[idx], std::format("expected end of file, but got {} extra tokens", m_tokens.size() - idx));
         }
-
-        return;
     }
 
     static std::string underlineProblematicToken(const Token &token)
