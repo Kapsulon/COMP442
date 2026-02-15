@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <iterator>
 #include <regex>
+#include <span>
 #include <string>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -225,7 +226,7 @@ std::string lang::tokenTypeToString(TokenType type)
 
 lang::Token lang::LexicalAnalyzer::makeToken(TokenType type, std::string lexeme)
 {
-    return { .type = type, .lexeme = lexeme, .line = m_lineNumber, .pos = m_position };
+    return { .type = type, .lexeme = lexeme, .line = m_lineNumber, .pos = m_position - lexeme.size() };
 }
 
 std::uint64_t lang::LexicalAnalyzer::readFile(std::string_view path)
@@ -236,32 +237,49 @@ std::uint64_t lang::LexicalAnalyzer::readFile(std::string_view path)
         throw std::runtime_error("Failed to open file: " + std::string(path));
     }
 
-    size_t size = lseek(m_fd, 0, SEEK_END);
+    m_filePath = std::string(path);
+
+    m_fileSize = lseek(m_fd, 0, SEEK_END);
 
     m_lineNumber = 1;
     m_position = 1;
     m_iter = 0;
 
     if (m_data) {
-        munmap(m_data, m_file_contents.size());
+        munmap(m_data, m_fileContents.size());
         m_data = nullptr;
     }
 
-    m_data = mmap(nullptr, size, PROT_READ, MAP_PRIVATE, m_fd, 0);
+    m_data = mmap(nullptr, m_fileSize, PROT_READ, MAP_PRIVATE, m_fd, 0);
 
-    m_file_contents = std::string_view(static_cast<const char *>(m_data), size);
-    m_slice = std::string_view(m_file_contents);
+    m_lineStartIndexes.clear();
+    m_lineStartIndexes.push_back(0);
+
+    std::span<const char> view(static_cast<const char *>(m_data), m_fileSize);
+    auto it = view.begin();
+    while (it != view.end()) {
+        it = std::find(it, view.end(), '\n');
+        if (it == view.end())
+            break;
+
+        m_lineStartIndexes.push_back((it - view.begin()) + 1);
+        ++it;
+    }
+
+
+    m_fileContents = std::string_view(static_cast<const char *>(m_data), m_fileSize);
+    m_slice = std::string_view(m_fileContents);
 
     close(m_fd);
     m_fd = -1;
 
-    return m_file_contents.size();
+    return m_fileContents.size();
 }
 
 void lang::LexicalAnalyzer::closeFile()
 {
     if (m_data) {
-        munmap(m_data, m_file_contents.size());
+        munmap(m_data, m_fileContents.size());
         m_data = nullptr;
     }
     if (m_fd != -1) {
@@ -272,29 +290,30 @@ void lang::LexicalAnalyzer::closeFile()
 
 lang::Token lang::LexicalAnalyzer::next()
 {
-    if (m_iter >= m_file_contents.size())
+    if (m_iter >= m_fileContents.size())
         return makeToken(TokenType::END_OF_FILE, "");
 
     std::uint64_t start_iter = m_iter;
 
-    while (m_file_contents[m_iter] == ' ' || m_file_contents[m_iter] == '\n' || m_file_contents[m_iter] == '\t' || m_file_contents[m_iter] == '\r') {
-        if (m_file_contents[m_iter] == '\n') {
+    while (m_fileContents[m_iter] == ' ' || m_fileContents[m_iter] == '\n' || m_fileContents[m_iter] == '\t' || m_fileContents[m_iter] == '\r') {
+        if (m_fileContents[m_iter] == '\n') {
             m_lineNumber++;
             m_position = 1;
-        } else if (m_file_contents[m_iter] == '\t') {
+        } else if (m_fileContents[m_iter] == '\t') {
             m_position += NEXT_TAB_POS(m_position);
-        } else if (m_file_contents[m_iter] != '\r') {
+        } else if (m_fileContents[m_iter] != '\r') {
             m_position++;
         }
         m_iter++;
     }
 
-    m_slice = std::string_view(m_file_contents).substr(m_iter);
+    m_slice = std::string_view(m_fileContents).substr(m_iter);
 
-    if (m_iter >= m_file_contents.size())
+    if (m_iter >= m_fileContents.size())
         return makeToken(TokenType::END_OF_FILE, "");
 
     lang::Token token = runRegEx();
+    token.file_path = m_filePath;
     if (token.type != lang::TokenType::UNKNOWN) [[likely]] {
         if (token.type == lang::TokenType::ID) {
             lang::Token keywordToken = checkKeywords(token);
@@ -310,7 +329,7 @@ lang::Token lang::LexicalAnalyzer::next()
         }
     }
 
-    lang::Token unknownToken = makeToken(lang::TokenType::UNKNOWN, std::string(1, m_file_contents[m_iter]));
+    lang::Token unknownToken = makeToken(lang::TokenType::UNKNOWN, std::string(1, m_fileContents[m_iter]));
     m_iter++;
     m_position++;
     return unknownToken;
@@ -318,7 +337,22 @@ lang::Token lang::LexicalAnalyzer::next()
 
 float lang::LexicalAnalyzer::getProgress() const
 {
-    return static_cast<float>(m_iter) / static_cast<float>(m_file_contents.size());
+    return static_cast<float>(m_iter) / static_cast<float>(m_fileContents.size());
+}
+
+std::string_view lang::LexicalAnalyzer::getLine(std::uint64_t lineNumber) const
+{
+    if (lineNumber == 0 || lineNumber > m_lineStartIndexes.size()) {
+        throw std::out_of_range("Line number out of range");
+    }
+
+    for (size_t i = m_lineStartIndexes[lineNumber - 1]; i < m_fileSize; i++) {
+        if (static_cast<const char *>(m_data)[i] == '\n') {
+            return std::string_view(static_cast<const char *>(m_data) + m_lineStartIndexes[lineNumber - 1], i - m_lineStartIndexes[lineNumber - 1]);
+        }
+    }
+
+    return std::string_view(static_cast<const char *>(m_data) + m_lineStartIndexes[lineNumber - 1], m_fileSize - m_lineStartIndexes[lineNumber - 1]);
 }
 
 std::uint32_t lang::LexicalAnalyzer::MatchBlockComment(std::string_view s)
@@ -371,12 +405,12 @@ lang::Token lang::LexicalAnalyzer::runRegEx()
 
     if (best > 0) {
         for (std::uint32_t i = 0; i < best; i++) {
-            if (m_file_contents[m_iter] == '\n') {
+            if (m_fileContents[m_iter] == '\n') {
                 m_lineNumber++;
                 m_position = 1;
-            } else if (m_file_contents[m_iter] == '\t') {
+            } else if (m_fileContents[m_iter] == '\t') {
                 m_position += NEXT_TAB_POS(m_position);
-            } else if (m_file_contents[m_iter] != '\r') {
+            } else if (m_fileContents[m_iter] != '\r') {
                 m_position++;
             }
             m_iter++;
@@ -386,7 +420,7 @@ lang::Token lang::LexicalAnalyzer::runRegEx()
         return token;
     }
 
-    return makeToken(lang::TokenType::UNKNOWN, std::string(1, m_file_contents[m_iter]));
+    return makeToken(lang::TokenType::UNKNOWN, std::string(1, m_fileContents[m_iter]));
 }
 
 const std::unordered_map<std::string, lang::TokenType> lang::LexicalAnalyzer::m_Keywords{
@@ -407,7 +441,7 @@ lang::Token lang::LexicalAnalyzer::checkKeywords(lang::Token &token)
         return token;
     }
 
-    return makeToken(lang::TokenType::UNKNOWN, std::string(1, m_file_contents[m_iter]));
+    return makeToken(lang::TokenType::UNKNOWN, std::string(1, m_fileContents[m_iter]));
 }
 
 lang::Token lang::LexicalAnalyzer::checkOperators()
@@ -422,5 +456,5 @@ lang::Token lang::LexicalAnalyzer::checkOperators()
         }
     }
 
-    return makeToken(lang::TokenType::UNKNOWN, std::string(1, m_file_contents[m_iter]));
+    return makeToken(lang::TokenType::UNKNOWN, std::string(1, m_fileContents[m_iter]));
 }

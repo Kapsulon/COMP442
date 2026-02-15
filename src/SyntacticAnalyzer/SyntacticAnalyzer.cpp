@@ -9,14 +9,13 @@ namespace lang
 
     void SyntacticAnalyzer::openFile(std::string_view path)
     {
-        m_lexicalAnalyzer.closeFile();
+        closeFile();
 
         m_tokens.resize(0);
         std::uint64_t read_bytes = m_lexicalAnalyzer.readFile(path);
         m_tokens.reserve(read_bytes / 10);
 
         lex();
-        closeFile();
 
         m_tokens.erase(
             std::remove_if(
@@ -503,7 +502,7 @@ namespace lang
         return table;
     }
 
-    std::stack<Symbol> SyntacticAnalyzer::parse()
+    void SyntacticAnalyzer::parse()
     {
         std::stack<Symbol> st;
         st.push(Symbol::T(TokenType::END_OF_FILE));
@@ -520,12 +519,11 @@ namespace lang
                     st.pop();
                     idx++;
                 } else {
-                    spdlog::error(
-                        "Syntax error: expected token of type {}, but got token of type {} at index {}",
-                        lang::tokenTypeToString(x.term),
-                        lang::tokenTypeToString(a.type),
-                        idx);
-                    return st;
+                    error(
+                        a,
+                        std::format(
+                            "expected token of type {}, but got token of type {}", lang::tokenTypeToString(x.term), lang::tokenTypeToString(a.type), idx));
+                    return;
                 }
             } else {
                 if (m_parseTable.contains(x.nonterm) && m_parseTable.at(x.nonterm).contains(a.type)) {
@@ -533,21 +531,53 @@ namespace lang
                     auto &prod = m_parseTable.at(x.nonterm).at(a.type);
                     for (auto it = prod.rbegin(); it != prod.rend(); ++it) st.push(*it);
                 } else {
-                    spdlog::error(
-                        "Syntax error: no production for non-terminal {} with lookahead token of type {} at index {}",
-                        static_cast<int>(x.nonterm),
-                        lang::tokenTypeToString(a.type),
-                        idx);
-                    return st;
+                    error(
+                        a,
+                        std::format(
+                            "no production for non-terminal <{}> with lookahead token of type {}", to_string(x.nonterm), lang::tokenTypeToString(a.type), idx));
+                    return;
                 }
             }
         }
 
         if (idx != m_tokens.size()) {
-            spdlog::error("Syntax error: expected end of file, but got token of type {} at index {}", lang::tokenTypeToString(m_tokens[idx].type), idx);
+            error(m_tokens[idx], "expected end of file, but got extra tokens");
         }
 
-        return st;
+        return;
+    }
+
+    static std::string underlineProblematicToken(const Token &token)
+    {
+        std::string res = "";
+
+        spdlog::error("test (pos: {}): {}", token.pos, token.lexeme);
+
+        for (std::uint32_t i = 0; i < token.pos; i++) res.append(" ");
+        res.append("^");
+        for (std::uint32_t i = token.pos + 1; i < token.lexeme.size(); i++) res.append("~");
+
+        return res;
+    }
+
+    void SyntacticAnalyzer::error(const Token &token, const std::string &message)
+    {
+        auto line = m_lexicalAnalyzer.getLine(token.line);
+        while (!line.empty() && std::isspace(line[0])) line.remove_prefix(1);
+
+        std::string underline = underlineProblematicToken(token);
+
+        spdlog::error(
+            "{}:{}:{}: Syntax error: {}\n"
+            "  {}\t|\t{}\n"
+            "  \t|\t{}\n",
+            token.file_path,
+            token.line,
+            token.pos,
+            message,
+            token.line,
+            line,
+            underline);
     }
 
     std::string SyntacticAnalyzer::getFirstSet()

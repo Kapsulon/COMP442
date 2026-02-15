@@ -7,6 +7,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 
 
 #pragma clang diagnostic push
@@ -79,6 +80,7 @@ namespace lang
         std::string lexeme;
         std::uint64_t line;
         std::uint64_t pos;
+        std::string file_path;
     };
 
     std::string tokenTypeToCompString(TokenType type);
@@ -99,15 +101,21 @@ namespace lang
         Token next();
         float getProgress() const;
 
+        std::string_view getLine(std::uint64_t lineNumber) const;
+
     private:
         int m_fd{ -1 };
         void *m_data{ nullptr };
 
-        std::string_view m_file_contents;
+        std::string_view m_fileContents;
+        std::uint64_t m_fileSize{ 0 };
+        std::string m_filePath;
         std::string_view m_slice;
         std::uint64_t m_lineNumber{ 1 };
         std::uint64_t m_position{ 1 };
         std::uint64_t m_iter{ 0 };
+
+        std::vector<std::uint64_t> m_lineStartIndexes;
 
         using LexRule = struct {
             TokenType type;

@@ -4,10 +4,13 @@
 
 int main(int argc, char **argv)
 {
+    spdlog::set_pattern("[%^%l%$] %v");
+
     if (argc < 2) {
         spdlog::error("No input file specified.");
         return 1;
     }
+
 
     lang::SyntacticAnalyzer syntacticAnalyzer;
 

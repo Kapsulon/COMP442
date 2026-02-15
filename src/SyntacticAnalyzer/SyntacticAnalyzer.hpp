@@ -158,7 +158,7 @@ namespace lang
         SyntacticAnalyzer();
 
         void openFile(std::string_view path);
-        std::stack<Symbol> parse();
+        void parse();
 
         std::string getFirstSet();
         std::string getFollowSet();
@@ -175,6 +175,8 @@ namespace lang
         FirstSet generateFirstSet();
         FollowSet generateFollowSet();
         ParseTable generateParseTable();
+
+        void error(const Token &token, const std::string &message);
 
         static const Grammar grammar;
         const FirstSet m_firstSet;
