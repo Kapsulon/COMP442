@@ -1,6 +1,8 @@
-#include "SyntacticAnalyzer.hpp"
+#include <chrono>
 #include <format>
+
 #include "LexicalAnalyzer/LexicalAnalyzer.hpp"
+#include "SyntacticAnalyzer.hpp"
 #include "spdlog/spdlog.h"
 
 namespace lang
@@ -15,7 +17,7 @@ namespace lang
         std::uint64_t read_bytes = m_lexicalAnalyzer.readFile(path);
         m_tokens.reserve(read_bytes / 10);
 
-        lex();
+        lex(path);
 
         m_tokens.erase(
             std::remove_if(
@@ -30,8 +32,10 @@ namespace lang
         m_lexicalAnalyzer.closeFile();
     }
 
-    void SyntacticAnalyzer::lex()
+    void SyntacticAnalyzer::lex(std::string_view path)
     {
+        auto start = std::chrono::high_resolution_clock::now();
+
         while (true) {
             Token token = m_lexicalAnalyzer.next();
             m_tokens.push_back(token);
@@ -40,6 +44,12 @@ namespace lang
                 break;
             }
         }
+
+        auto end = std::chrono::high_resolution_clock::now();
+
+        std::chrono::duration<double, std::milli> elapsed = end - start;
+
+        spdlog::info("{}: Lexed {} tokens in {:.2f}ms", path, m_tokens.size(), elapsed.count());
     }
 
     // clang-format off
@@ -215,8 +225,14 @@ namespace lang
         },
         {
             NonTerminal::memberDecl, {
-                {Symbol::T(TokenType::ID), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::fParams), Symbol::T(TokenType::CLOSE_PARENTHESIS), Symbol::T(TokenType::COLON), Symbol::N(NonTerminal::funcDeclTail)},
-                {Symbol::N(NonTerminal::type_no_id), Symbol::T(TokenType::ID), Symbol::N(NonTerminal::varArrayList), Symbol::T(TokenType::SEMICOLON)}
+                {Symbol::N(NonTerminal::type_no_id), Symbol::T(TokenType::ID), Symbol::N(NonTerminal::varArrayList), Symbol::T(TokenType::SEMICOLON)},
+                {Symbol::T(TokenType::ID), Symbol::N(NonTerminal::memberAfterId)}
+            }
+        },
+        {
+            NonTerminal::memberAfterId, {
+                {Symbol::T(TokenType::ID), Symbol::N(NonTerminal::varArrayList), Symbol::T(TokenType::SEMICOLON)},
+                {Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::fParams), Symbol::T(TokenType::CLOSE_PARENTHESIS), Symbol::T(TokenType::COLON), Symbol::N(NonTerminal::funcDeclTail)},
             }
         },
         {
@@ -520,11 +536,7 @@ namespace lang
                 } else {
                     error(
                         token,
-                        std::format(
-                            "expected token of type {}, but got token of type {} (lexeme: {})",
-                            lang::tokenTypeToString(nonTerminal.term),
-                            lang::tokenTypeToString(token.type),
-                            token.lexeme));
+                        std::format(R"(expected "{}", but got "{}")", lang::tokenTypeToCompString(nonTerminal.term), lang::tokenTypeToCompString(token.type)));
                     return;
                 }
             } else {
@@ -536,9 +548,9 @@ namespace lang
                     error(
                         token,
                         std::format(
-                            "no production for non-terminal <{}> with lookahead token of type {}",
+                            R"(no production for non-terminal <{}> with lookahead "{}")",
                             to_string(nonTerminal.nonterm),
-                            lang::tokenTypeToString(token.type),
+                            lang::tokenTypeToCompString(token.type),
                             idx));
                     return;
                 }

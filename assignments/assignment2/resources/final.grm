@@ -80,8 +80,11 @@
 <localDeclOpt> ::= 'local' <varDeclList>
 <localDeclOpt> ::= EPSILON
 
-<memberDecl> ::= 'id' '(' <fParams> ')' ':' <funcDeclTail>
 <memberDecl> ::= <type_no_id> 'id' <varArrayList> ';'
+<memberDecl> ::= 'id' <memberAfterId>
+
+<memberAfterId> ::= 'id' <varArrayList> ';'
+<memberAfterId> ::= '(' <fParams> ')' ':' <funcDeclTail>
 
 <multOp> ::= '*'
 <multOp> ::= '/'

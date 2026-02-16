@@ -26,6 +26,7 @@ namespace lang
         classMemberList,
         visibility,
         memberDecl,
+        memberAfterId,
         funcDeclTail,
         funcDef,
         funcDefList,
@@ -81,6 +82,7 @@ namespace lang
                                                                             { NonTerminal::classMemberList, "classMemberList" },
                                                                             { NonTerminal::visibility, "visibility" },
                                                                             { NonTerminal::memberDecl, "memberDecl" },
+                                                                            { NonTerminal::memberAfterId, "memberAfterId" },
                                                                             { NonTerminal::funcDeclTail, "funcDeclTail" },
                                                                             { NonTerminal::funcDef, "funcDef" },
                                                                             { NonTerminal::funcDefList, "funcDefList" },
@@ -171,7 +173,7 @@ namespace lang
         std::vector<Token> m_tokens;
 
         void closeFile();
-        void lex();
+        void lex(std::string_view path);
 
         bool isEpsilon(const FirstSymbol &s);
 
