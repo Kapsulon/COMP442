@@ -1,0 +1,58 @@
+// Complex expressions (addop, multop, relop, unaryop, idnest, function calls)
+
+class VEC {
+  public float x;
+  public float y;
+  public dot(VEC other) : float;
+};
+
+VEC::dot(VEC other) : float
+  do
+    return (x * other.x + y * other.y);
+  end
+
+absInt(integer x) : integer
+  do
+    if (x < 0) then
+      do
+        return (-x);
+      end
+    else
+      do
+        return (x);
+      end
+    ;
+  end
+
+main
+  local
+    integer a;
+    integer b;
+    float f;
+    VEC v1;
+    VEC v2;
+    integer arr[5];
+  do
+    a = 1;
+    b = 2;
+    f = 3.5;
+
+    arr[absInt(a - b)] = 10;
+
+    v1.x = 1.0;
+    v1.y = 2.0;
+    v2.x = 3.0;
+    v2.y = 4.0;
+
+    write(absInt(-a + b * 3) + arr[absInt(a-b)] * 2);
+
+    if (absInt(a - b) + 1 <= absInt(b - a) * 2) then
+      do
+        write(v1.dot(v2) / (f + 1.0) - -2.0);
+      end
+    else
+      do
+        write(not a and b or 0);
+      end
+    ;
+  end

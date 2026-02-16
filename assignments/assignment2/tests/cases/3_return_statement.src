@@ -1,0 +1,15 @@
+// return statements
+
+neg(integer x) : integer
+  do
+    return (-x);
+  end
+
+main
+  local
+    integer v;
+  do
+    v = 5;
+    write(neg(v));
+    return (v);
+  end

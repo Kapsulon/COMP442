@@ -1,0 +1,52 @@
+// Complex idnest with [], (), and expressions as array indexes
+
+class ARR {
+  public integer data[10];
+  public get(integer i) : integer;
+};
+
+class WRAP {
+  public ARR a;
+  public getArr() : ARR;
+  public get(integer i) : integer;
+};
+
+idx(integer x, integer y) : integer
+  do
+    return (x * 2 + y);
+  end
+
+twice(integer x) : integer
+  do
+    return (x * 2);
+  end
+
+ARR::get(integer i) : integer
+  do
+    return (data[i]);
+  end
+
+WRAP::getArr() : ARR
+  do
+    return (a);
+  end
+
+WRAP::get(integer i) : integer
+  do
+    return (getArr().get(i));
+  end
+
+main
+  local
+    WRAP w;
+    integer i;
+    integer j;
+    integer raw[6];
+  do
+    i = 1;
+    j = 2;
+    raw[0] = 3;
+    raw[1] = 4;
+    write(w.getArr().data[idx(i, j) + twice(raw[i+1])]);
+    write(w.get(idx(i, raw[j])) + w.getArr().get(raw[0] + raw[1]));
+  end

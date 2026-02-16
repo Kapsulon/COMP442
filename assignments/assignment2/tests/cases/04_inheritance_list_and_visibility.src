@@ -1,0 +1,24 @@
+// Inheritance list + public/private members
+
+class A {
+  public fa() : void;
+  private integer hidden;
+};
+
+class B {
+  public fb(integer x) : integer;
+};
+
+class C {
+  public fc(float x, float y) : float;
+};
+
+class D inherits A, B, C {
+  public integer id;
+  private float weights[3];
+  public fd(A a, B b, C c) : void;
+};
+
+main
+  do
+  end

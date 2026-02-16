@@ -1,0 +1,20 @@
+// read/write statements
+
+class REC {
+  public integer n;
+  public float f;
+};
+
+main
+  local
+    REC r;
+    integer a[2];
+    integer i;
+  do
+    i = 0;
+    read(r.n);
+    read(a[i]);
+    write(r.n);
+    write(a[i] + r.n);
+    write(1.5);
+  end

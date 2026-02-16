@@ -1,0 +1,15 @@
+// if statement
+
+main
+  local
+    integer x;
+  do
+    read(x);
+    if (x > 0) then
+      do
+        write(x);
+      end
+    else
+      ;
+    x = x + 1;
+  end

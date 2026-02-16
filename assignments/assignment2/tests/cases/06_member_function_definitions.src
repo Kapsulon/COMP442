@@ -1,0 +1,44 @@
+// Member function definitions (scope resolution ::)
+
+class COUNTER {
+  private integer value;
+  public set(integer v) : void;
+  public inc(integer delta) : void;
+  public get() : integer;
+  public make(integer start) : COUNTER;
+};
+
+COUNTER::set(integer v) : void
+  do
+    value = v;
+  end
+
+COUNTER::inc(integer delta) : void
+  do
+    value = value + delta;
+  end
+
+COUNTER::get() : integer
+  do
+    return (value);
+  end
+
+COUNTER::make(integer start) : COUNTER
+  local
+    COUNTER c;
+  do
+    c.value = start;
+    return (c);
+  end
+
+main
+  local
+    COUNTER c;
+    integer x;
+  do
+    c = c.make(0);
+    read(x);
+    c.set(x);
+    c.inc(1);
+    write(c.get());
+  end

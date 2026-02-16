@@ -1,0 +1,17 @@
+// Member function declarations (params, array params, returns: int/float/void/id)
+
+class POINT {
+  public float x;
+  public float y;
+};
+
+class MATH {
+  public add(integer x, integer y) : integer;
+  public scale(float v, float k) : float;
+  public fill(integer out[], integer n, integer value) : void;
+  public makePoint(float x, float y) : POINT;
+};
+
+main
+  do
+  end

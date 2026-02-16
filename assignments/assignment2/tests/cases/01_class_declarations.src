@@ -1,0 +1,19 @@
+// Class declarations (including empty class)
+
+class EMPTY {
+};
+
+class POINT {
+  public float x;
+  public float y;
+};
+
+class BOX {
+  private POINT min;
+  private POINT max;
+  public integer id;
+};
+
+main
+  do
+  end

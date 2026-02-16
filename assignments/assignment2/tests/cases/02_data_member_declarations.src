@@ -1,0 +1,17 @@
+// Data member declarations (primitive, class types, arrays, multi-d arrays)
+
+class STORAGE {
+  public integer a;
+  private float b;
+
+  public integer vec[10];
+  private float table[2][3];
+  public integer dyn[];
+
+  private STORAGE child;
+  public STORAGE children[4];
+};
+
+main
+  do
+  end

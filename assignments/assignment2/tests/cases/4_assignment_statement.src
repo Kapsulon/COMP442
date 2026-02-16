@@ -1,0 +1,20 @@
+// assignment statements (scalars, fields, arrays)
+
+class OBJ {
+  public integer a;
+  public integer b[2];
+};
+
+main
+  local
+    OBJ o;
+    integer i;
+    integer arr[4];
+  do
+    i = 1;
+    o.a = 10;
+    o.b[0] = o.a + 1;
+    arr[i] = o.b[i-1] * 2;
+    arr[i+1] = arr[i] + 3;
+    write(arr[2]);
+  end

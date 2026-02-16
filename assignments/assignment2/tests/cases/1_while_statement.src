@@ -1,0 +1,13 @@
+// while statement
+
+main
+  local
+    integer i;
+  do
+    i = 0;
+    while (i < 5)
+      do
+        write(i);
+        i = i + 1;
+      end;
+  end
