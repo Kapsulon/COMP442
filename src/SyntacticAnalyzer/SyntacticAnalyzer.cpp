@@ -1,5 +1,6 @@
 #include <chrono>
 #include <format>
+#include <iostream>
 
 #include "LexicalAnalyzer/LexicalAnalyzer.hpp"
 #include "SyntacticAnalyzer.hpp"
@@ -7,17 +8,21 @@
 
 namespace lang
 {
-    SyntacticAnalyzer::SyntacticAnalyzer() : m_firstSet(generateFirstSet()), m_followSet(generateFollowSet()), m_parseTable(generateParseTable()) {}
+    SyntacticAnalyzer::SyntacticAnalyzer(bool outputFiles) :
+        m_firstSet(generateFirstSet()), m_followSet(generateFollowSet()), m_parseTable(generateParseTable()), m_outputFiles(outputFiles)
+    {
+    }
 
     void SyntacticAnalyzer::openFile(std::string_view path)
     {
         closeFile();
+        m_currentFilePath = path;
 
         m_tokens.resize(0);
         std::uint64_t read_bytes = m_lexicalAnalyzer.readFile(path);
         m_tokens.reserve(read_bytes / 10);
 
-        lex(path);
+        lex();
 
         m_tokens.erase(
             std::remove_if(
@@ -25,14 +30,36 @@ namespace lang
                 m_tokens.end(),
                 [](const Token &token) { return token.type == TokenType::INLINE_COMMENT || token.type == TokenType::BLOCK_COMMENT; }),
             m_tokens.end());
+
+        if (m_outputFiles) {
+            std::string errorFilePath = std::string(m_currentFilePath) + ".outsyntaxerrors";
+            m_outParseErrors.open(errorFilePath, std::ios::out);
+            if (!m_outParseErrors.is_open()) {
+                spdlog::error("Failed to open output file for parse errors: {}", errorFilePath);
+                m_outputFiles = false;
+            }
+
+            std::string derivationFilePath = std::string(m_currentFilePath) + ".outderivation";
+            m_outDerivation.open(derivationFilePath, std::ios::out);
+            if (!m_outDerivation.is_open()) {
+                spdlog::error("Failed to open output file for derivation: {}", derivationFilePath);
+                m_outputFiles = false;
+            }
+        }
     }
 
     void SyntacticAnalyzer::closeFile()
     {
         m_lexicalAnalyzer.closeFile();
+
+        if (m_outputFiles)
+            m_outParseErrors.close();
+
+        if (m_outputFiles)
+            m_outDerivation.close();
     }
 
-    void SyntacticAnalyzer::lex(std::string_view path)
+    void SyntacticAnalyzer::lex()
     {
         auto start = std::chrono::high_resolution_clock::now();
 
@@ -49,7 +76,7 @@ namespace lang
 
         std::chrono::duration<double, std::milli> elapsed = end - start;
 
-        spdlog::info("{}: Lexed {} tokens in {:.2f}ms", path, m_tokens.size(), elapsed.count());
+        spdlog::info("{}: Lexed {} tokens in {:.2f}ms", m_currentFilePath, m_tokens.size(), elapsed.count());
     }
 
     // clang-format off
@@ -374,7 +401,7 @@ namespace lang
 
     bool SyntacticAnalyzer::isEpsilon(const FirstSymbol &s)
     {
-        return std::holds_alternative<EpsilonTag>(s);
+        return std::holds_alternative<tags::EpsilonTag>(s);
     }
 
     FirstSet SyntacticAnalyzer::generateFirstSet()
@@ -389,7 +416,7 @@ namespace lang
                 for (auto &p : prods) {
 
                     if (p.empty()) {
-                        changed |= first[A].insert(EPS).second;
+                        changed |= first[A].insert(tags::EPS).second;
                         continue;
                     }
 
@@ -406,7 +433,7 @@ namespace lang
                                     changed |= first[A].insert(f).second;
                             }
 
-                            if (!first[sym.nonterm].contains(EPS)) {
+                            if (!first[sym.nonterm].contains(tags::EPS)) {
                                 allNullable = false;
                                 break;
                             }
@@ -414,7 +441,7 @@ namespace lang
                     }
 
                     if (allNullable)
-                        changed |= first[A].insert(EPS).second;
+                        changed |= first[A].insert(tags::EPS).second;
                 }
             }
         }
@@ -459,7 +486,7 @@ namespace lang
                                     if (!isEpsilon(f))
                                         changed |= follow[B].insert(std::get<TokenType>(f)).second;
 
-                                if (!m_firstSet.at(next.nonterm).contains(EPS)) {
+                                if (!m_firstSet.at(next.nonterm).contains(tags::EPS)) {
                                     nullableSuffix = false;
                                     break;
                                 }
@@ -482,10 +509,11 @@ namespace lang
         ParseTable table;
 
         for (auto &[A, prods] : grammar) {
+            table[A];
             for (auto &p : prods) {
 
                 if (p.empty()) {
-                    for (auto t : m_followSet.at(A)) table[A][t] = p;
+                    for (auto t : m_followSet.at(A)) table[A][t] = ParseTableEntry{ p };
                     continue;
                 }
 
@@ -493,73 +521,174 @@ namespace lang
 
                 for (auto &sym : p) {
                     if (sym.is_terminal) {
-                        table[A][sym.term] = p;
+                        table[A][sym.term] = ParseTableEntry{ p };
                         nullable = false;
                         break;
                     }
 
                     for (auto &f : m_firstSet.at(sym.nonterm))
                         if (!isEpsilon(f))
-                            table[A][std::get<TokenType>(f)] = p;
+                            table[A][std::get<TokenType>(f)] = ParseTableEntry{ p };
 
-                    if (!m_firstSet.at(sym.nonterm).contains(EPS)) {
+                    if (!m_firstSet.at(sym.nonterm).contains(tags::EPS)) {
                         nullable = false;
                         break;
                     }
                 }
 
                 if (nullable) {
-                    for (auto t : m_followSet.at(A)) table[A][t] = p;
+                    for (auto t : m_followSet.at(A)) table[A][t] = ParseTableEntry{ p };
                 }
+            }
+        }
+
+        for (const auto &[A, _] : grammar) {
+            for (auto t : m_followSet.at(A)) {
+                if (!table[A].contains(t))
+                    table[A][t] = ParseTableEntry{ tags::SYNC };
             }
         }
 
         return table;
     }
 
+    static bool isLikelyMissingDelimiter(TokenType t)
+    {
+        switch (t) {
+            case TokenType::SEMICOLON:
+            case TokenType::COMMA:
+            case TokenType::CLOSE_PARENTHESIS:
+            case TokenType::CLOSE_BRACE:
+            case TokenType::CLOSE_BRACKET:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    void SyntacticAnalyzer::outputDerivationStep(const NonTerminal &A, const ParseTableEntry &entry)
+    {
+        if (!m_outputFiles)
+            return;
+
+        m_outDerivation << to_string(A) << " -> ";
+        if (std::holds_alternative<Production>(entry)) {
+            auto &prod = std::get<Production>(entry);
+            for (auto &sym : prod) {
+                if (sym.is_terminal) {
+                    m_outDerivation << "'" << lang::tokenTypeToCompString(sym.term) << "' ";
+                } else {
+                    m_outDerivation << "<" << to_string(sym.nonterm) << "> ";
+                }
+            }
+        } else {
+            m_outDerivation << "SYNC";
+        }
+        m_outDerivation << std::endl;
+    }
+
+#define SYNTAX_ERROR()                                    \
+    if (++errorCount >= maxErrors) {                      \
+        error(token, "too many syntax errors; aborting"); \
+        return;                                           \
+    }
+
     void SyntacticAnalyzer::parse()
     {
+        auto start = std::chrono::high_resolution_clock::now();
         std::stack<Symbol> st;
         st.push(Symbol::T(TokenType::END_OF_FILE));
         st.push(Symbol::N(NonTerminal::prog));
 
         std::uint32_t idx = 0;
+        std::uint32_t errorCount = 0;
+        constexpr std::uint32_t maxErrors = 20;
 
         while (!st.empty()) {
-            auto nonTerminal = st.top();
+            if (idx >= m_tokens.size()) {
+                error(m_tokens.empty() ? Token{ TokenType::END_OF_FILE, "", 0, 0, "" } : m_tokens.back(), "unexpected end of token stream");
+                return;
+            }
+
+            auto top = st.top();
             auto token = m_tokens[idx];
 
-            if (nonTerminal.is_terminal) {
-                if (nonTerminal.term == token.type) [[likely]] {
+            if (top.is_terminal) {
+                if (top.term == token.type) [[likely]] {
                     st.pop();
                     idx++;
                 } else {
-                    error(
-                        token,
-                        std::format(R"(expected "{}", but got "{}")", lang::tokenTypeToCompString(nonTerminal.term), lang::tokenTypeToCompString(token.type)));
-                    return;
+                    if (top.term == TokenType::END_OF_FILE) {
+                        warn(token, std::format(R"(discarding unexpected token "{}" before end of file)", lang::tokenTypeToCompString(token.type)));
+                        idx++;
+                    } else if (token.type == TokenType::END_OF_FILE || isLikelyMissingDelimiter(top.term)) {
+                        warn(
+                            token,
+                            std::format(
+                                R"(expected "{}", but got "{}"; inserting missing token)",
+                                lang::tokenTypeToCompString(top.term),
+                                lang::tokenTypeToCompString(token.type)));
+                        st.pop();
+                    } else {
+                        warn(
+                            token,
+                            std::format(
+                                R"(expected "{}", but got "{}"; discarding unexpected token)",
+                                lang::tokenTypeToCompString(top.term),
+                                lang::tokenTypeToCompString(token.type)));
+                        idx++;
+                    }
+
+                    SYNTAX_ERROR();
                 }
             } else {
-                if (m_parseTable.contains(nonTerminal.nonterm) && m_parseTable.at(nonTerminal.nonterm).contains(token.type)) [[likely]] {
+                const auto A = top.nonterm;
+
+                if (m_parseTable.contains(A) && m_parseTable.at(A).contains(token.type)) [[likely]] {
+                    auto &entry = m_parseTable.at(A).at(token.type);
+
+                    if (std::holds_alternative<tags::SyncTag>(entry)) {
+                        warn(
+                            token,
+                            std::format(
+                                R"(synchronizing: popping non-terminal <{}> on lookahead "{}")", to_string(A), lang::tokenTypeToCompString(token.type)));
+                        st.pop();
+                        SYNTAX_ERROR();
+                        continue;
+                    }
+
+                    outputDerivationStep(A, entry);
+
                     st.pop();
-                    auto &prod = m_parseTable.at(nonTerminal.nonterm).at(token.type);
+                    auto &prod = std::get<Production>(entry);
                     for (auto it = prod.rbegin(); it != prod.rend(); ++it) st.push(*it);
                 } else {
-                    error(
+                    if (token.type == TokenType::END_OF_FILE) {
+                        error(
+                            token,
+                            std::format(R"(no production for non-terminal <{}> with lookahead "{}")", to_string(A), lang::tokenTypeToCompString(token.type)));
+                        return;
+                    }
+
+                    warn(
                         token,
                         std::format(
-                            R"(no production for non-terminal <{}> with lookahead "{}")",
-                            to_string(nonTerminal.nonterm),
-                            lang::tokenTypeToCompString(token.type),
-                            idx));
-                    return;
+                            R"(no production for non-terminal <{}> with lookahead "{}"; discarding token)",
+                            to_string(A),
+                            lang::tokenTypeToCompString(token.type)));
+                    idx++;
+                    SYNTAX_ERROR();
                 }
             }
         }
 
-        if (idx != m_tokens.size()) {
-            error(m_tokens[idx], std::format("expected end of file, but got {} extra tokens", m_tokens.size() - idx));
+        if (idx < m_tokens.size()) {
+            warn(m_tokens[idx], std::format("skipping {} extra tokens after parse completion", m_tokens.size() - idx));
         }
+
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> elapsed = end - start;
+        spdlog::info("{}: Parsed in {:.2f}ms with {} syntax error(s)", m_currentFilePath, elapsed.count(), errorCount);
     }
 
     static std::string underlineProblematicToken(const Token &token)
@@ -600,7 +729,7 @@ namespace lang
         std::string line = expandTabs(m_lexicalAnalyzer.getLine(token.line));
         std::string underline = underlineProblematicToken(token);
 
-        spdlog::error(
+        auto err = std::format(
             "{}:{}:{}: Syntax error: {}\n"
             "  {}\t|\t{}\n"
             "  \t|\t{}\n",
@@ -611,6 +740,34 @@ namespace lang
             token.line,
             line,
             underline);
+
+        spdlog::error(err);
+
+        if (m_outputFiles)
+            m_outParseErrors << err << std::endl;
+    }
+
+    void SyntacticAnalyzer::warn(const Token &token, const std::string &message)
+    {
+        std::string line = expandTabs(m_lexicalAnalyzer.getLine(token.line));
+        std::string underline = underlineProblematicToken(token);
+
+        auto err = std::format(
+            "{}:{}:{}: Syntax error (recovered): {}\n"
+            "  {}\t|\t{}\n"
+            "  \t|\t{}\n",
+            token.file_path,
+            token.line,
+            token.pos,
+            message,
+            token.line,
+            line,
+            underline);
+
+        spdlog::warn(err);
+
+        if (m_outputFiles)
+            m_outParseErrors << err << std::endl;
     }
 
     std::string SyntacticAnalyzer::getFirstSet()

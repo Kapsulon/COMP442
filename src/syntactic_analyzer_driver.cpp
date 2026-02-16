@@ -6,7 +6,7 @@
 
 int main(int argc, char **argv)
 {
-    spdlog::set_pattern("[%^%l%$] %v");
+    spdlog::set_pattern("[%^%-7l%$] %v");
 
     if (argc < 2) {
         spdlog::error("No input file specified.");
@@ -14,7 +14,7 @@ int main(int argc, char **argv)
     }
 
 
-    lang::SyntacticAnalyzer syntacticAnalyzer;
+    lang::SyntacticAnalyzer syntacticAnalyzer(true);
 
     for (std::uint64_t idx = 1; idx != argc; idx++) {
         syntacticAnalyzer.openFile(argv[idx]);

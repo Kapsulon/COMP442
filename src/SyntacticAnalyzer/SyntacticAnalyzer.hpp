@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <fstream>
 #include <stack>
 #include <string_view>
 #include <unordered_map>
@@ -146,21 +147,31 @@ namespace lang
 
     using Production = std::vector<Symbol>;
     using Grammar = std::unordered_map<NonTerminal, std::vector<Production>>;
-    struct EpsilonTag {
-        friend constexpr bool operator==(EpsilonTag, EpsilonTag) = default;
-    };
-    constexpr EpsilonTag EPS{};
 
-    using FirstSymbol = std::variant<TokenType, EpsilonTag>;
+    namespace tags
+    {
+        struct EpsilonTag {
+            friend constexpr bool operator==(EpsilonTag, EpsilonTag) = default;
+        };
+        constexpr EpsilonTag EPS{};
+
+        struct SyncTag {
+            friend constexpr bool operator==(SyncTag, SyncTag) = default;
+        };
+        constexpr SyncTag SYNC{};
+    } // namespace tags
+
+    using FirstSymbol = std::variant<TokenType, tags::EpsilonTag>;
     using FirstSet = std::unordered_map<NonTerminal, std::unordered_set<FirstSymbol>>;
     using FollowSet = std::unordered_map<NonTerminal, std::unordered_set<TokenType>>;
 
-    using ParseTable = std::unordered_map<NonTerminal, std::unordered_map<TokenType, Production>>;
+    using ParseTableEntry = std::variant<Production, tags::SyncTag>;
+    using ParseTable = std::unordered_map<NonTerminal, std::unordered_map<TokenType, ParseTableEntry>>;
 
     class SyntacticAnalyzer
     {
     public:
-        SyntacticAnalyzer();
+        SyntacticAnalyzer(bool outputFiles = false);
 
         void openFile(std::string_view path);
         void parse();
@@ -171,9 +182,14 @@ namespace lang
     private:
         LexicalAnalyzer m_lexicalAnalyzer;
         std::vector<Token> m_tokens;
+        std::string m_currentFilePath;
+
+        bool m_outputFiles;
+        std::ofstream m_outParseErrors;
+        std::ofstream m_outDerivation;
 
         void closeFile();
-        void lex(std::string_view path);
+        void lex();
 
         bool isEpsilon(const FirstSymbol &s);
 
@@ -182,6 +198,9 @@ namespace lang
         ParseTable generateParseTable();
 
         void error(const Token &token, const std::string &message);
+        void warn(const Token &token, const std::string &message);
+
+        void outputDerivationStep(const NonTerminal &A, const ParseTableEntry &entry);
 
         static const Grammar grammar;
         const FirstSet m_firstSet;
@@ -192,8 +211,8 @@ namespace lang
 
 namespace std
 {
-    template <> struct hash<lang::EpsilonTag> {
-        size_t operator()(const lang::EpsilonTag &) const noexcept
+    template <> struct hash<lang::tags::EpsilonTag> {
+        size_t operator()(const lang::tags::EpsilonTag &) const noexcept
         {
             return static_cast<size_t>(0x9E3779B97F4A7C15ull);
         }
