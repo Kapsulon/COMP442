@@ -52,7 +52,7 @@ static void outputTokensFlaci(std::ofstream &out, std::vector<lang::Token> &toke
     for (auto &token : tokens) {
         if (token.type == lang::TokenType::INLINE_COMMENT || token.type == lang::TokenType::BLOCK_COMMENT || token.type == lang::TokenType::UNKNOWN)
             continue;
-        out.write((token.lexeme + "\n").c_str(), token.lexeme.size() + 1);
+        out << lang::tokenTypeToCompString(token.type) << "\n";
     }
 }
 

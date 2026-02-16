@@ -414,7 +414,6 @@ namespace lang
 
             for (auto &[A, prods] : grammar) {
                 for (auto &p : prods) {
-
                     if (p.empty()) {
                         changed |= first[A].insert(tags::EPS).second;
                         continue;
@@ -428,10 +427,9 @@ namespace lang
                             allNullable = false;
                             break;
                         } else {
-                            for (auto &f : first[sym.nonterm]) {
+                            for (auto &f : first[sym.nonterm])
                                 if (!isEpsilon(f))
                                     changed |= first[A].insert(f).second;
-                            }
 
                             if (!first[sym.nonterm].contains(tags::EPS)) {
                                 allNullable = false;
@@ -492,9 +490,8 @@ namespace lang
                                 }
                             }
 
-                            if (nullableSuffix) {
+                            if (nullableSuffix)
                                 for (auto t : follow[A]) changed |= follow[B].insert(t).second;
-                            }
                         }
                     }
                 }
@@ -536,18 +533,15 @@ namespace lang
                     }
                 }
 
-                if (nullable) {
+                if (nullable)
                     for (auto t : m_followSet.at(A)) table[A][t] = ParseTableEntry{ p };
-                }
             }
         }
 
-        for (const auto &[A, _] : grammar) {
-            for (auto t : m_followSet.at(A)) {
+        for (const auto &[A, _] : grammar)
+            for (auto t : m_followSet.at(A))
                 if (!table[A].contains(t))
                     table[A][t] = ParseTableEntry{ tags::SYNC };
-            }
-        }
 
         return table;
     }
@@ -571,20 +565,26 @@ namespace lang
         if (!m_outputFiles)
             return;
 
-        m_outDerivation << to_string(A) << " -> ";
+        std::string res;
+
+        res.append(to_string(A)).append(" -> ");
+
         if (std::holds_alternative<Production>(entry)) {
             auto &prod = std::get<Production>(entry);
+            if (prod.empty())
+                res.append("EPSILON");
+
             for (auto &sym : prod) {
-                if (sym.is_terminal) {
-                    m_outDerivation << "'" << lang::tokenTypeToCompString(sym.term) << "' ";
-                } else {
-                    m_outDerivation << "<" << to_string(sym.nonterm) << "> ";
-                }
+                if (sym.is_terminal)
+                    res.append("'").append(lang::tokenTypeToCompString(sym.term)).append("' ");
+                else
+                    res.append("<").append(to_string(sym.nonterm)).append("> ");
             }
-        } else {
-            m_outDerivation << "SYNC";
         }
-        m_outDerivation << std::endl;
+
+        while (!res.empty() && res.back() == ' ') res.pop_back();
+
+        m_outDerivation << res << std::endl;
     }
 
 #define SYNTAX_ERROR()                                    \
@@ -598,7 +598,7 @@ namespace lang
         auto start = std::chrono::high_resolution_clock::now();
         std::stack<Symbol> st;
         st.push(Symbol::T(TokenType::END_OF_FILE));
-        st.push(Symbol::N(NonTerminal::prog));
+        st.push(Symbol::N(NonTerminal::START));
 
         std::uint32_t idx = 0;
         std::uint32_t errorCount = 0;
