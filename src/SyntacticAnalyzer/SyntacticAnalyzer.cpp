@@ -451,10 +451,7 @@ namespace lang
     {
         FollowSet follow;
 
-        for (const auto &[A, _] : grammar) {
-            (void)_;
-            follow[A];
-        }
+        for (const auto &[A, _] : grammar) follow[A];
 
         follow[NonTerminal::START].insert(TokenType::END_OF_FILE);
 
