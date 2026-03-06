@@ -422,16 +422,16 @@ namespace lang
                     bool allNullable = true;
 
                     for (auto &sym : p) {
-                        if (sym.is_terminal) {
-                            changed |= first[A].insert(sym.term).second;
+                        if (auto token = std::get_if<TokenType>(&sym.value)) {
+                            changed |= first[A].insert(*token).second;
                             allNullable = false;
                             break;
-                        } else {
-                            for (auto &f : first[sym.nonterm])
+                        } else if (auto nonterm = std::get_if<NonTerminal>(&sym.value)) {
+                            for (auto &f : first[*nonterm])
                                 if (!isEpsilon(f))
                                     changed |= first[A].insert(f).second;
 
-                            if (!first[sym.nonterm].contains(tags::EPS)) {
+                            if (!first[*nonterm].contains(tags::EPS)) {
                                 allNullable = false;
                                 break;
                             }
@@ -463,32 +463,31 @@ namespace lang
             for (auto &[A, prods] : grammar) {
                 for (auto &p : prods) {
                     for (size_t i = 0; i < p.size(); ++i) {
-                        if (!p[i].is_terminal) {
-                            auto B = p[i].nonterm;
-
+                        if (auto B = std::get_if<NonTerminal>(&p[i].value)) {
                             bool nullableSuffix = true;
 
                             for (size_t j = i + 1; j < p.size(); ++j) {
                                 auto &next = p[j];
 
-                                if (next.is_terminal) {
-                                    changed |= follow[B].insert(next.term).second;
+                                if (auto next_term = std::get_if<TokenType>(&next.value)) {
+                                    changed |= follow[*B].insert(*next_term).second;
                                     nullableSuffix = false;
                                     break;
                                 }
 
-                                for (auto &f : m_firstSet.at(next.nonterm))
+                                auto next_nonterm = std::get_if<NonTerminal>(&next.value);
+                                for (auto &f : m_firstSet.at(*next_nonterm))
                                     if (!isEpsilon(f))
-                                        changed |= follow[B].insert(std::get<TokenType>(f)).second;
+                                        changed |= follow[*B].insert(std::get<TokenType>(f)).second;
 
-                                if (!m_firstSet.at(next.nonterm).contains(tags::EPS)) {
+                                if (!m_firstSet.at(*next_nonterm).contains(tags::EPS)) {
                                     nullableSuffix = false;
                                     break;
                                 }
                             }
 
                             if (nullableSuffix)
-                                for (auto t : follow[A]) changed |= follow[B].insert(t).second;
+                                for (auto t : follow[A]) changed |= follow[*B].insert(t).second;
                         }
                     }
                 }
@@ -514,17 +513,18 @@ namespace lang
                 bool nullable = true;
 
                 for (auto &sym : p) {
-                    if (sym.is_terminal) {
-                        table[A][sym.term] = ParseTableEntry{ p };
+                    if (auto sym_term = std::get_if<TokenType>(&sym.value)) {
+                        table[A][*sym_term] = ParseTableEntry{ p };
                         nullable = false;
                         break;
                     }
 
-                    for (auto &f : m_firstSet.at(sym.nonterm))
+                    auto sym_nonterm = std::get_if<NonTerminal>(&sym.value);
+                    for (auto &f : m_firstSet.at(*sym_nonterm))
                         if (!isEpsilon(f))
                             table[A][std::get<TokenType>(f)] = ParseTableEntry{ p };
 
-                    if (!m_firstSet.at(sym.nonterm).contains(tags::EPS)) {
+                    if (!m_firstSet.at(*sym_nonterm).contains(tags::EPS)) {
                         nullable = false;
                         break;
                     }
@@ -572,10 +572,10 @@ namespace lang
                 res.append("EPSILON");
 
             for (auto &sym : prod) {
-                if (sym.is_terminal)
-                    res.append("'").append(lang::tokenTypeToCompString(sym.term)).append("' ");
-                else
-                    res.append("<").append(to_string(sym.nonterm)).append("> ");
+                if (auto term = std::get_if<TokenType>(&sym.value))
+                    res.append("'").append(lang::tokenTypeToCompString(*term)).append("' ");
+                else if (auto nonterm = std::get_if<NonTerminal>(&sym.value))
+                    res.append("<").append(to_string(*nonterm)).append("> ");
             }
         }
 
@@ -610,20 +610,20 @@ namespace lang
             auto top = st.top();
             auto token = m_tokens[idx];
 
-            if (top.is_terminal) {
-                if (top.term == token.type) [[likely]] {
+            if (auto top_term = std::get_if<TokenType>(&top.value)) {
+                if (*top_term == token.type) [[likely]] {
                     st.pop();
                     idx++;
                 } else {
-                    if (top.term == TokenType::END_OF_FILE) {
+                    if (*top_term == TokenType::END_OF_FILE) {
                         warn(token, std::format(R"(discarding unexpected token "{}" before end of file)", lang::tokenTypeToCompString(token.type)));
                         idx++;
-                    } else if (token.type == TokenType::END_OF_FILE || isLikelyMissingDelimiter(top.term)) {
+                    } else if (token.type == TokenType::END_OF_FILE || isLikelyMissingDelimiter(*top_term)) {
                         warn(
                             token,
                             std::format(
                                 R"(expected "{}", but got "{}"; inserting missing token)",
-                                lang::tokenTypeToCompString(top.term),
+                                lang::tokenTypeToCompString(*top_term),
                                 lang::tokenTypeToCompString(token.type)));
                         st.pop();
                     } else {
@@ -631,7 +631,7 @@ namespace lang
                             token,
                             std::format(
                                 R"(expected "{}", but got "{}"; discarding unexpected token)",
-                                lang::tokenTypeToCompString(top.term),
+                                lang::tokenTypeToCompString(*top_term),
                                 lang::tokenTypeToCompString(token.type)));
                         idx++;
                     }
@@ -639,7 +639,7 @@ namespace lang
                     SYNTAX_ERROR();
                 }
             } else {
-                const auto A = top.nonterm;
+                const auto A = std::get<NonTerminal>(top.value);
 
                 if (m_parseTable.contains(A) && m_parseTable.at(A).contains(token.type)) [[likely]] {
                     auto &entry = m_parseTable.at(A).at(token.type);

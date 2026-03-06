@@ -72,6 +72,38 @@ namespace lang
         type_no_id
     };
 
+    enum class SemanticAction {
+        MakeId,
+        MakeType,
+        MakeNum,
+        MakeDim,
+        MakeDimList,
+        MakeVarDecl,
+        MakeParamList,
+        MakeClass,
+        MakeClassList,
+        MakeFuncDef,
+        MakeFuncDefList,
+        MakeStatBlock,
+        MakeProgramBlock,
+        MakeProg,
+        MakeAssignStat,
+        MakePutStat,
+        MakeReturnStat,
+        MakeIfStat,
+        MakeWhileStat,
+        MakeReadStat,
+        MakeAddOp,
+        MakeMultOp,
+        MakeRelOp,
+        MakeNotExpr,
+        MakeSignExpr,
+        MakeFuncCall,
+        MakeIndexedVar,
+        MakeMemberAccess,
+        PushMarker
+    };
+
     inline std::string to_string(NonTerminal nt)
     {
         static const std::unordered_map<NonTerminal, std::string> names = { { NonTerminal::START, "START" },
@@ -130,18 +162,21 @@ namespace lang
     }
 
     struct Symbol {
-        bool is_terminal;
-        TokenType term;
-        NonTerminal nonterm;
+        std::variant<TokenType, NonTerminal, SemanticAction> value;
 
         static Symbol T(TokenType t)
         {
-            return { true, t, {} };
+            return { t };
         }
 
         static Symbol N(NonTerminal n)
         {
-            return { false, {}, n };
+            return { n };
+        }
+
+        static Symbol A(SemanticAction s)
+        {
+            return { s };
         }
     };
 
