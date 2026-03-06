@@ -9,6 +9,7 @@
 #include <variant>
 #include <vector>
 
+#include "AST/ASTNode.hpp"
 #include "LexicalAnalyzer/LexicalAnalyzer.hpp"
 
 // clang-format off
@@ -101,7 +102,8 @@ namespace lang
         MakeFuncCall,
         MakeIndexedVar,
         MakeMemberAccess,
-        PushMarker
+        PushMarker,
+        SaveOp // saves m_lastToken.lexeme as the pending binary operator
     };
 
     inline std::string to_string(NonTerminal nt)
@@ -211,6 +213,8 @@ namespace lang
         void openFile(std::string_view path);
         void parse();
 
+        ASTNodePtr getAST() const;
+
         std::string getFirstSet();
         std::string getFollowSet();
 
@@ -222,6 +226,14 @@ namespace lang
         bool m_outputFiles;
         std::ofstream m_outParseErrors;
         std::ofstream m_outDerivation;
+
+        // AST construction state
+        std::stack<ASTNodePtr> m_nodeStack;
+        ASTNodePtr m_astRoot;
+        Token m_lastToken{ TokenType::END_OF_FILE, "", 0, 0, "" };
+        std::string m_savedOperator; // saved operator lexeme for binary op nodes
+
+        void executeAction(SemanticAction action);
 
         void closeFile();
         void lex();
