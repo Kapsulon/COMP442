@@ -103,64 +103,183 @@ namespace lang
         MakeIndexedVar,
         MakeMemberAccess,
         PushMarker,
-        SaveOp // saves m_lastToken.lexeme as the pending binary operator
+        SaveOp
     };
 
     inline std::string to_string(NonTerminal nt)
     {
-        static const std::unordered_map<NonTerminal, std::string> names = { { NonTerminal::START, "START" },
-                                                                            { NonTerminal::prog, "prog" },
-                                                                            { NonTerminal::classList, "classList" },
-                                                                            { NonTerminal::classDecl, "classDecl" },
-                                                                            { NonTerminal::classInheritOpt, "classInheritOpt" },
-                                                                            { NonTerminal::classInheritTail, "classInheritTail" },
-                                                                            { NonTerminal::classMemberList, "classMemberList" },
-                                                                            { NonTerminal::visibility, "visibility" },
-                                                                            { NonTerminal::memberDecl, "memberDecl" },
-                                                                            { NonTerminal::memberAfterId, "memberAfterId" },
-                                                                            { NonTerminal::funcDeclTail, "funcDeclTail" },
-                                                                            { NonTerminal::funcDef, "funcDef" },
-                                                                            { NonTerminal::funcDefList, "funcDefList" },
-                                                                            { NonTerminal::funcHead, "funcHead" },
-                                                                            { NonTerminal::funcHeadTail, "funcHeadTail" },
-                                                                            { NonTerminal::funcHeadReturn, "funcHeadReturn" },
-                                                                            { NonTerminal::funcBody, "funcBody" },
-                                                                            { NonTerminal::localDeclOpt, "localDeclOpt" },
-                                                                            { NonTerminal::varDecl, "varDecl" },
-                                                                            { NonTerminal::varDeclList, "varDeclList" },
-                                                                            { NonTerminal::varArrayList, "varArrayList" },
-                                                                            { NonTerminal::arraySize, "arraySize" },
-                                                                            { NonTerminal::arraySizeTail, "arraySizeTail" },
-                                                                            { NonTerminal::fParams, "fParams" },
-                                                                            { NonTerminal::fParamsTail, "fParamsTail" },
-                                                                            { NonTerminal::fParamsArrayList, "fParamsArrayList" },
-                                                                            { NonTerminal::aParams, "aParams" },
-                                                                            { NonTerminal::aParamsTail, "aParamsTail" },
-                                                                            { NonTerminal::stmtList, "stmtList" },
-                                                                            { NonTerminal::statBlock, "statBlock" },
-                                                                            { NonTerminal::statement, "statement" },
-                                                                            { NonTerminal::statementEnd, "statementEnd" },
-                                                                            { NonTerminal::assignOp, "assignOp" },
-                                                                            { NonTerminal::variable, "variable" },
-                                                                            { NonTerminal::postfix, "postfix" },
-                                                                            { NonTerminal::postfixList, "postfixList" },
-                                                                            { NonTerminal::postfixNoCall, "postfixNoCall" },
-                                                                            { NonTerminal::postfixListNoCall, "postfixListNoCall" },
-                                                                            { NonTerminal::indice, "indice" },
-                                                                            { NonTerminal::expr, "expr" },
-                                                                            { NonTerminal::exprRelTail, "exprRelTail" },
-                                                                            { NonTerminal::relOp, "relOp" },
-                                                                            { NonTerminal::arithExpr, "arithExpr" },
-                                                                            { NonTerminal::arithExprTail, "arithExprTail" },
-                                                                            { NonTerminal::term, "term" },
-                                                                            { NonTerminal::termTail, "termTail" },
-                                                                            { NonTerminal::factor, "factor" },
-                                                                            { NonTerminal::multOp, "multOp" },
-                                                                            { NonTerminal::addOp, "addOp" },
-                                                                            { NonTerminal::sign, "sign" },
-                                                                            { NonTerminal::type, "type" },
-                                                                            { NonTerminal::type_no_id, "type_no_id" } };
-        return names.at(nt);
+        switch (nt) {
+            case NonTerminal::START:
+                return "START";
+            case NonTerminal::prog:
+                return "prog";
+            case NonTerminal::classList:
+                return "classList";
+            case NonTerminal::classDecl:
+                return "classDecl";
+            case NonTerminal::classInheritOpt:
+                return "classInheritOpt";
+            case NonTerminal::classInheritTail:
+                return "classInheritTail";
+            case NonTerminal::classMemberList:
+                return "classMemberList";
+            case NonTerminal::visibility:
+                return "visibility";
+            case NonTerminal::memberDecl:
+                return "memberDecl";
+            case NonTerminal::memberAfterId:
+                return "memberAfterId";
+            case NonTerminal::funcDeclTail:
+                return "funcDeclTail";
+            case NonTerminal::funcDef:
+                return "funcDef";
+            case NonTerminal::funcDefList:
+                return "funcDefList";
+            case NonTerminal::funcHead:
+                return "funcHead";
+            case NonTerminal::funcHeadTail:
+                return "funcHeadTail";
+            case NonTerminal::funcHeadReturn:
+                return "funcHeadReturn";
+            case NonTerminal::funcBody:
+                return "funcBody";
+            case NonTerminal::localDeclOpt:
+                return "localDeclOpt";
+            case NonTerminal::varDecl:
+                return "varDecl";
+            case NonTerminal::varDeclList:
+                return "varDeclList";
+            case NonTerminal::varArrayList:
+                return "varArrayList";
+            case NonTerminal::arraySize:
+                return "arraySize";
+            case NonTerminal::arraySizeTail:
+                return "arraySizeTail";
+            case NonTerminal::fParams:
+                return "fParams";
+            case NonTerminal::fParamsTail:
+                return "fParamsTail";
+            case NonTerminal::fParamsArrayList:
+                return "fParamsArrayList";
+            case NonTerminal::aParams:
+                return "aParams";
+            case NonTerminal::aParamsTail:
+                return "aParamsTail";
+            case NonTerminal::stmtList:
+                return "stmtList";
+            case NonTerminal::statBlock:
+                return "statBlock";
+            case NonTerminal::statement:
+                return "statement";
+            case NonTerminal::statementEnd:
+                return "statementEnd";
+            case NonTerminal::assignOp:
+                return "assignOp";
+            case NonTerminal::variable:
+                return "variable";
+            case NonTerminal::postfix:
+                return "postfix";
+            case NonTerminal::postfixList:
+                return "postfixList";
+            case NonTerminal::postfixNoCall:
+                return "postfixNoCall";
+            case NonTerminal::postfixListNoCall:
+                return "postfixListNoCall";
+            case NonTerminal::indice:
+                return "indice";
+            case NonTerminal::expr:
+                return "expr";
+            case NonTerminal::exprRelTail:
+                return "exprRelTail";
+            case NonTerminal::relOp:
+                return "relOp";
+            case NonTerminal::arithExpr:
+                return "arithExpr";
+            case NonTerminal::arithExprTail:
+                return "arithExprTail";
+            case NonTerminal::term:
+                return "term";
+            case NonTerminal::termTail:
+                return "termTail";
+            case NonTerminal::factor:
+                return "factor";
+            case NonTerminal::multOp:
+                return "multOp";
+            case NonTerminal::addOp:
+                return "addOp";
+            case NonTerminal::sign:
+                return "sign";
+            case NonTerminal::type:
+                return "type";
+            case NonTerminal::type_no_id:
+                return "type_no_id";
+        }
+        return "?";
+    }
+
+    inline std::string to_string(ASTNode::Kind kind)
+    {
+        switch (kind) {
+            case ASTNode::Kind::Prog:
+                return "Prog";
+            case ASTNode::Kind::ClassList:
+                return "ClassList";
+            case ASTNode::Kind::Class:
+                return "Class";
+            case ASTNode::Kind::FuncDefList:
+                return "FuncDefList";
+            case ASTNode::Kind::FuncDef:
+                return "FuncDef";
+            case ASTNode::Kind::ProgramBlock:
+                return "ProgramBlock";
+            case ASTNode::Kind::ParamList:
+                return "ParamList";
+            case ASTNode::Kind::StatBlock:
+                return "StatBlock";
+            case ASTNode::Kind::VarDecl:
+                return "VarDecl";
+            case ASTNode::Kind::DimList:
+                return "DimList";
+            case ASTNode::Kind::AssignStat:
+                return "AssignStat";
+            case ASTNode::Kind::PutStat:
+                return "PutStat";
+            case ASTNode::Kind::ReturnStat:
+                return "ReturnStat";
+            case ASTNode::Kind::IfStat:
+                return "IfStat";
+            case ASTNode::Kind::WhileStat:
+                return "WhileStat";
+            case ASTNode::Kind::ReadStat:
+                return "ReadStat";
+            case ASTNode::Kind::FuncCall:
+                return "FuncCall";
+            case ASTNode::Kind::AddOp:
+                return "AddOp";
+            case ASTNode::Kind::MultOp:
+                return "MultOp";
+            case ASTNode::Kind::RelOp:
+                return "RelOp";
+            case ASTNode::Kind::NotExpr:
+                return "NotExpr";
+            case ASTNode::Kind::SignExpr:
+                return "SignExpr";
+            case ASTNode::Kind::IndexedVar:
+                return "IndexedVar";
+            case ASTNode::Kind::MemberAccess:
+                return "MemberAccess";
+            case ASTNode::Kind::Id:
+                return "Id";
+            case ASTNode::Kind::Type:
+                return "Type";
+            case ASTNode::Kind::Dim:
+                return "Dim";
+            case ASTNode::Kind::Num:
+                return "Num";
+            case ASTNode::Kind::Marker:
+                return "Marker";
+        }
+        return "?";
     }
 
     struct Symbol {
@@ -208,7 +327,7 @@ namespace lang
     class SyntacticAnalyzer
     {
     public:
-        SyntacticAnalyzer(bool outputFiles = false);
+        SyntacticAnalyzer();
 
         void openFile(std::string_view path);
         void parse();
@@ -218,22 +337,25 @@ namespace lang
         std::string getFirstSet();
         std::string getFollowSet();
 
+        void outputSyntaxErrors();
+        void outputDerivationSteps();
+        void outputDotAST();
+
     private:
         LexicalAnalyzer m_lexicalAnalyzer;
         std::vector<Token> m_tokens;
         std::string m_currentFilePath;
 
-        bool m_outputFiles;
-        std::ofstream m_outParseErrors;
-        std::ofstream m_outDerivation;
+        std::string m_outParseErrors;
+        std::string m_outDerivationSteps;
 
-        // AST construction state
         std::stack<ASTNodePtr> m_nodeStack;
         ASTNodePtr m_astRoot;
         Token m_lastToken{ TokenType::END_OF_FILE, "", 0, 0, "" };
-        std::string m_savedOperator; // saved operator lexeme for binary op nodes
+        std::string m_savedOperator;
 
         void executeAction(SemanticAction action);
+        void writeDerivationSteps(const NonTerminal &A, const ParseTableEntry &entry);
 
         void closeFile();
         void lex();
@@ -246,8 +368,6 @@ namespace lang
 
         void error(const Token &token, const std::string &message);
         void warn(const Token &token, const std::string &message);
-
-        void outputDerivationStep(const NonTerminal &A, const ParseTableEntry &entry);
 
         static const Grammar grammar;
         const FirstSet m_firstSet;

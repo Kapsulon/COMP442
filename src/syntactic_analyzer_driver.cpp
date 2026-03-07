@@ -14,19 +14,22 @@ int main(int argc, char **argv)
     }
 
 
-    lang::SyntacticAnalyzer syntacticAnalyzer(true);
+    lang::SyntacticAnalyzer syntacticAnalyzer;
+
+#if OUTPUT_SETS
+    std::ofstream first("out.grm.first");
+    std::ofstream follow("out.grm.follow");
+    first << syntacticAnalyzer.getFirstSet();
+    follow << syntacticAnalyzer.getFollowSet();
+    first.close();
+    follow.close();
+#endif
 
     for (std::uint64_t idx = 1; idx != argc; idx++) {
         syntacticAnalyzer.openFile(argv[idx]);
-#if OUTPUT_SETS
-        std::ofstream first("out.grm.first");
-        std::ofstream follow("out.grm.follow");
-        first << syntacticAnalyzer.getFirstSet();
-        follow << syntacticAnalyzer.getFollowSet();
-        first.close();
-        follow.close();
-#endif
         syntacticAnalyzer.parse();
+        syntacticAnalyzer.outputDerivationSteps();
+        syntacticAnalyzer.outputSyntaxErrors();
     }
 
     return 0;
