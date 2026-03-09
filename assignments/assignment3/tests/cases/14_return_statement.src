@@ -1,0 +1,51 @@
+// Return statements: returning integer, float, negated value, expression, class type
+
+class PAIR {
+  public integer a;
+  public integer b;
+};
+
+negate(integer x) : integer
+  do
+    return (-x);
+  end
+
+halve(float x) : float
+  do
+    return (x / 2.0);
+  end
+
+max2(integer a, integer b) : integer
+  do
+    if (a > b) then
+      do
+        return (a);
+      end
+    else
+      do
+        return (b);
+      end
+    ;
+  end
+
+makePair(integer x, integer y) : PAIR
+  local
+    PAIR p;
+  do
+    p.a = x;
+    p.b = y;
+    return (p);
+  end
+
+main
+  local
+    integer v;
+    float f;
+  do
+    v = 7;
+    f = 3.0;
+    write(negate(v));
+    write(halve(f));
+    write(max2(v, 3));
+    return (0);
+  end

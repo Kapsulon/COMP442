@@ -1,0 +1,32 @@
+// Local variable declarations in function bodies: integer, float, class, arrays
+
+class VEC2 {
+  public float x;
+  public float y;
+};
+
+compute(integer n) : float
+  local
+    integer i;
+    integer j;
+    float acc;
+    VEC2 v;
+    integer buf[8];
+  do
+    i = 0;
+    j = 0;
+    acc = 0.0;
+    return (acc);
+  end
+
+main
+  local
+    integer a;
+    float b;
+    VEC2 pt;
+    integer arr[5];
+  do
+    a = 1;
+    b = 2.0;
+    write(a);
+  end

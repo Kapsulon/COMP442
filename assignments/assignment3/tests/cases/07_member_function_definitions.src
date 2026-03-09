@@ -1,0 +1,55 @@
+// Member function definitions using :: scope resolution
+
+class STACK {
+  private integer data[10];
+  private integer top;
+  public push(integer v) : void;
+  public pop() : integer;
+  public peek() : integer;
+  public isEmpty() : integer;
+};
+
+STACK::push(integer v) : void
+  do
+    data[top] = v;
+    top = top + 1;
+  end
+
+STACK::pop() : integer
+  local
+    integer v;
+  do
+    top = top - 1;
+    v = data[top];
+    return (v);
+  end
+
+STACK::peek() : integer
+  do
+    return (data[top - 1]);
+  end
+
+STACK::isEmpty() : integer
+  do
+    if (top == 0) then
+      do
+        return (1);
+      end
+    else
+      do
+        return (0);
+      end
+    ;
+  end
+
+main
+  local
+    STACK s;
+    integer x;
+  do
+    s.push(10);
+    s.push(20);
+    x = s.pop();
+    write(x);
+    write(s.peek());
+  end

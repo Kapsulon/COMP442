@@ -1,0 +1,33 @@
+// Array variable declarations: 1D fixed, 2D fixed, unsized, class-typed arrays
+
+class PAIR {
+  public integer first;
+  public integer second;
+};
+
+process(integer data[], integer n) : void
+  local
+    integer i;
+    float temp[5];
+    PAIR pairs[3];
+  do
+    i = 0;
+    while (i < n)
+      do
+        write(data[i]);
+        i = i + 1;
+      end;
+  end
+
+main
+  local
+    integer nums[6];
+    float matrix[3][3];
+    PAIR list[4];
+    integer buf[];
+  do
+    nums[0] = 1;
+    matrix[0][0] = 1.0;
+    list[0].first = 10;
+    process(nums, 6);
+  end

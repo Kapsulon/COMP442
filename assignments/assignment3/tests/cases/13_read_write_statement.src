@@ -1,0 +1,28 @@
+// Read and write statements: scalar, array element, member access, expressions
+
+class POINT {
+  public float x;
+  public float y;
+};
+
+main
+  local
+    integer n;
+    float f;
+    POINT p;
+    integer arr[3];
+    integer i;
+  do
+    read(n);
+    read(f);
+    read(p.x);
+    read(p.y);
+    i = 0;
+    read(arr[i]);
+    write(n);
+    write(f);
+    write(p.x + p.y);
+    write(arr[0] + n);
+    write(3.14);
+    write(n * 2 + 1);
+  end

@@ -1,0 +1,19 @@
+// Class declarations: empty class, single member, multiple members
+
+class EMPTY {
+};
+
+class POINT {
+  private float x;
+  public float y;
+};
+
+class RECT {
+  public POINT origin;
+  public float width;
+  public float height;
+};
+
+main
+  do
+  end

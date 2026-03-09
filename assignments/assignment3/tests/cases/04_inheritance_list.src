@@ -1,0 +1,23 @@
+// Inheritance list: single inheritance, multiple inheritance
+
+class BASE {
+  public integer id;
+  public init(integer v) : void;
+};
+
+class NAMED {
+  public describe() : void;
+};
+
+class CHILD inherits BASE {
+  public float value;
+};
+
+class MULTI inherits BASE, NAMED {
+  public integer extra;
+  public combined(integer x, float y) : integer;
+};
+
+main
+  do
+  end

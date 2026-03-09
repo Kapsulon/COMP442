@@ -1,0 +1,85 @@
+// Complex expressions: addop, multop, relop, unaryop, idnest, function calls
+
+class VEC {
+  public float x;
+  public float y;
+  public length() : float;
+};
+
+VEC::length() : float
+  do
+    return (x * x + y * y);
+  end
+
+clamp(integer v, integer lo, integer hi) : integer
+  do
+    if (v < lo) then
+      do
+        return (lo);
+      end
+    else
+      do
+        if (v > hi) then
+          do
+            return (hi);
+          end
+        else
+          do
+            return (v);
+          end
+        ;
+      end
+    ;
+  end
+
+main
+  local
+    integer a;
+    integer b;
+    float f;
+    VEC u;
+    VEC w;
+    integer arr[4];
+  do
+    a = 3;
+    b = 4;
+    f = 1.5;
+
+    // addop chain: +, -, combined with multop *
+    write(a + b - 1 + a * 2);
+
+    // multop with unary minus and division
+    write(-a * b + a / 2);
+
+    // relop: >=
+    if (a + 1 >= b - 1) then
+      do
+        write(1);
+      end
+    else
+      do
+        write(0);
+      end
+    ;
+
+    // or / and / not combination (no relop chain)
+    write(not a and b or 0);
+
+    // function call as operand in addop/multop expression
+    write(clamp(a + b, 0, 10) * 2 - 1);
+
+    // idnest + function call + addop
+    write(u.length() + w.length() - f);
+
+    // array indexed by expression using function call
+    arr[a - 1] = clamp(a * b, 1, 10);
+    write(arr[a - 1] + arr[b - a]);
+
+    // relop with ne (<>)
+    if (clamp(a, 0, 5) <> b) then
+      do
+        write(a * b + clamp(b, 2, 8));
+      end
+    else
+      ;
+  end

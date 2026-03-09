@@ -1,0 +1,52 @@
+// If statements: simple, nested, with else block, empty else
+
+abs(integer x) : integer
+  do
+    if (x < 0) then
+      do
+        return (-x);
+      end
+    else
+      do
+        return (x);
+      end
+    ;
+  end
+
+classify(integer x) : integer
+  local
+    integer result;
+  do
+    if (x < 0) then
+      do
+        result = -1;
+      end
+    else
+      do
+        if (x == 0) then
+          do
+            result = 0;
+          end
+        else
+          do
+            result = 1;
+          end
+        ;
+      end
+    ;
+    return (result);
+  end
+
+main
+  local
+    integer n;
+  do
+    read(n);
+    if (n > 0) then
+      do
+        write(abs(n));
+      end
+    else
+      ;
+    write(classify(n));
+  end

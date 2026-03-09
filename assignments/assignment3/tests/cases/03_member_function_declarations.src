@@ -1,0 +1,14 @@
+// Member function declarations: various param types and return types
+
+class SHAPE {
+  public area() : float;
+  public perimeter() : float;
+  public scale(float factor) : void;
+  public contains(float px, float py) : integer;
+  public copy() : SHAPE;
+  public fill(integer out[], integer n) : void;
+};
+
+main
+  do
+  end

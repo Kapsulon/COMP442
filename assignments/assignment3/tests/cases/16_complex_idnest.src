@@ -1,0 +1,50 @@
+// Complex idnest: chained [], (), ., and expressions as array indexes
+
+class VEC {
+  public integer data[8];
+  public size() : integer;
+  public get(integer i) : integer;
+};
+
+class LIST {
+  public VEC items[4];
+  public head() : VEC;
+  public getItem(integer i) : VEC;
+};
+
+offset(integer base, integer step) : integer
+  do
+    return (base * step + step);
+  end
+
+main
+  local
+    LIST lst;
+    VEC v;
+    integer i;
+    integer j;
+    integer idx[4];
+  do
+    i = 1;
+    j = 2;
+    idx[0] = 0;
+    idx[1] = 1;
+
+    // array indexed by function call result
+    v.data[offset(i, j)] = 42;
+
+    // chained member access with array index
+    lst.items[i].data[j] = 10;
+
+    // method call on result of indexing into member array
+    write(lst.items[idx[0]].get(offset(i, j)));
+
+    // deeply nested: list method -> vec method -> indexed by expression
+    write(lst.head().data[lst.getItem(i).size() - 1]);
+
+    // array indexed by another array element used as index
+    write(v.data[idx[idx[0]]]);
+
+    // chained function calls with array index as argument
+    write(lst.getItem(idx[i]).get(offset(idx[0], j)));
+  end

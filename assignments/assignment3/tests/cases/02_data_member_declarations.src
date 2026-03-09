@@ -1,0 +1,13 @@
+// Data member declarations: integer, float, class types, 1D arrays, 2D arrays, unsized arrays
+
+class MATRIX {
+  public integer rows;
+  private float scale;
+  public integer data[4][4];
+  private float buffer[];
+  public MATRIX sub[2];
+};
+
+main
+  do
+  end

@@ -1,0 +1,16 @@
+// Private and public visibility on data members and function declarations
+
+class ACCOUNT {
+  private integer balance;
+  private float interest;
+  public integer id;
+  public integer arr[3];
+  public deposit(integer amount) : void;
+  private validate(integer x) : integer;
+  public getBalance() : integer;
+  private computeInterest(float rate, integer years) : float;
+};
+
+main
+  do
+  end

@@ -1,0 +1,30 @@
+// While statements: simple loop, nested loops, loop with decrement
+
+main
+  local
+    integer i;
+    integer j;
+    integer sum;
+    integer n;
+  do
+    n = 5;
+    sum = 0;
+    i = 0;
+    while (i < n)
+      do
+        j = 0;
+        while (j < i)
+          do
+            sum = sum + j;
+            j = j + 1;
+          end;
+        i = i + 1;
+      end;
+    write(sum);
+    i = 64;
+    while (i > 1)
+      do
+        i = i / 2;
+      end;
+    write(i);
+  end

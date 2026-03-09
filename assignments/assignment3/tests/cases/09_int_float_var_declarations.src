@@ -1,0 +1,26 @@
+// Integer, float, and user-defined type variable declarations
+
+class COLOR {
+  public integer r;
+  public integer g;
+  public integer b;
+};
+
+main
+  local
+    integer count;
+    integer index;
+    float ratio;
+    float threshold;
+    COLOR fg;
+    COLOR bg;
+  do
+    count = 0;
+    index = 1;
+    ratio = 0.5;
+    threshold = 1.0;
+    fg.r = 255;
+    fg.g = 0;
+    fg.b = 0;
+    write(count);
+  end

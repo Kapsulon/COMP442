@@ -1,0 +1,40 @@
+// Free function definitions with local variables, parameters, while loop, read, write, return
+
+factorial(integer n) : integer
+  do
+    if (n <= 1) then
+      do
+        return (1);
+      end
+    else
+      do
+        return (n * factorial(n - 1));
+      end
+    ;
+  end
+
+sumTo(integer n) : integer
+  local
+    integer i;
+    integer s;
+  do
+    i = 1;
+    s = 0;
+    while (i <= n)
+      do
+        s = s + i;
+        i = i + 1;
+      end;
+    return (s);
+  end
+
+main
+  local
+    integer x;
+    integer result;
+  do
+    read(x);
+    result = factorial(x);
+    write(result);
+    write(sumTo(x));
+  end
