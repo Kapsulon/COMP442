@@ -1,6 +1,8 @@
 #include <chrono>
 #include <format>
+#include <initializer_list>
 #include <iostream>
+#include <set>
 
 #include "LexicalAnalyzer/LexicalAnalyzer.hpp"
 #include "SyntacticAnalyzer.hpp"
@@ -602,6 +604,8 @@ namespace lang
 
     void SyntacticAnalyzer::outputDotAST()
     {
+        static const std::set<char> needs_escape = { '<', '>', '{', '}', '|', '"', '\\' };
+
         std::string errorFilePath = m_currentFilePath + ".outast";
         std::ofstream out(errorFilePath);
 
@@ -632,8 +636,13 @@ namespace lang
             std::string label = lang::to_string(n->kind);
             if (!n->lexeme.empty()) {
                 label += " | ";
-                label += (n->lexeme.size() > 1 ? "" : "\\");
-                label += n->lexeme;
+                std::string new_lexeme;
+                for (char c : n->lexeme) {
+                    if (needs_escape.contains(c))
+                        new_lexeme += '\\';
+                    new_lexeme += c;
+                }
+                label += new_lexeme;
             }
             out << id << "[label=\"" << label << "\"];\n";
 
