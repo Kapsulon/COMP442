@@ -18,6 +18,8 @@ namespace lang
         m_lastToken = Token{ TokenType::END_OF_FILE, "", 0, 0, "" };
         m_savedOperator = "";
         m_currentVisibility = "";
+        m_outDerivationSteps.clear();
+        m_outParseErrors.clear();
 
         m_currentFilePath = path;
 
@@ -589,6 +591,13 @@ namespace lang
     {
         std::string errorFilePath = m_currentFilePath + ".outderivation";
         std::ofstream out(errorFilePath);
+
+        if (!out.is_open()) {
+            spdlog::error("Failed to open output file for derivation steps: {}", errorFilePath);
+            return;
+        }
+
+        out << m_outDerivationSteps;
     }
 
     void SyntacticAnalyzer::outputDotAST()
