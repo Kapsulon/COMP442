@@ -103,7 +103,8 @@ namespace lang
         MakeIndexedVar,
         MakeMemberAccess,
         PushMarker,
-        SaveOp
+        SaveOp,
+        SaveVisibility
     };
 
     inline std::string to_string(NonTerminal nt)
@@ -353,6 +354,7 @@ namespace lang
         ASTNodePtr m_astRoot;
         Token m_lastToken{ TokenType::END_OF_FILE, "", 0, 0, "" };
         std::string m_savedOperator;
+        std::string m_currentVisibility;
 
         void executeAction(SemanticAction action);
         void writeDerivationSteps(const NonTerminal &A, const ParseTableEntry &entry);

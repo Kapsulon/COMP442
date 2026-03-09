@@ -17,6 +17,7 @@ namespace lang
         m_astRoot = nullptr;
         m_lastToken = Token{ TokenType::END_OF_FILE, "", 0, 0, "" };
         m_savedOperator = "";
+        m_currentVisibility = "";
 
         m_currentFilePath = path;
 
@@ -137,7 +138,7 @@ namespace lang
         },
         {
             NonTerminal::classMemberList, {
-                { Symbol::N(NonTerminal::visibility), Symbol::N(NonTerminal::memberDecl), Symbol::N(NonTerminal::classMemberList) },
+                { Symbol::N(NonTerminal::visibility), Symbol::A(SemanticAction::SaveVisibility), Symbol::N(NonTerminal::memberDecl), Symbol::N(NonTerminal::classMemberList) },
                 EPSILON
             }
         },
@@ -620,8 +621,11 @@ namespace lang
                 return;
             auto id = ids[n.get()];
             std::string label = lang::to_string(n->kind);
-            if (!n->lexeme.empty())
-                label += " | \\" + n->lexeme;
+            if (!n->lexeme.empty()) {
+                label += " | ";
+                label += (n->lexeme.size() > 1 ? "" : "\\");
+                label += n->lexeme;
+            }
             out << id << "[label=\"" << label << "\"];\n";
 
             if (n->children.empty()) {
@@ -830,7 +834,7 @@ namespace lang
                     m_nodeStack.pop();
                     auto type = m_nodeStack.top();
                     m_nodeStack.pop();
-                    auto node = makeNode(ASTNode::Kind::VarDecl);
+                    auto node = makeNode(ASTNode::Kind::VarDecl, m_currentVisibility);
                     node->children = { type, id, dimList };
                     m_nodeStack.push(node);
                     break;
@@ -1108,6 +1112,11 @@ namespace lang
             case SemanticAction::SaveOp:
                 {
                     m_savedOperator = m_lastToken.lexeme;
+                    break;
+                }
+            case SemanticAction::SaveVisibility:
+                {
+                    m_currentVisibility = m_lastToken.lexeme;
                     break;
                 }
         }
