@@ -75,15 +75,20 @@ namespace lang
 
     enum class SemanticAction {
         MakeId,
+        MakeSavedId,
         MakeType,
+        MakeSavedType,
         MakeNum,
         MakeDim,
         MakeDimList,
         MakeVarDecl,
+        MakeMemberVarDecl,
         MakeParamList,
+        MakeInheritList,
         MakeClass,
         MakeClassList,
         MakeFuncDef,
+        MakeFuncDecl,
         MakeFuncDefList,
         MakeStatBlock,
         MakeProgramBlock,
@@ -104,6 +109,7 @@ namespace lang
         MakeMemberAccess,
         PushMarker,
         SaveOp,
+        SaveLeadId,
         SaveVisibility
     };
 
@@ -227,10 +233,14 @@ namespace lang
                 return "ClassList";
             case ASTNode::Kind::Class:
                 return "Class";
+            case ASTNode::Kind::InheritList:
+                return "InheritList";
             case ASTNode::Kind::FuncDefList:
                 return "FuncDefList";
             case ASTNode::Kind::FuncDef:
                 return "FuncDef";
+            case ASTNode::Kind::FuncDecl:
+                return "FuncDecl";
             case ASTNode::Kind::ProgramBlock:
                 return "ProgramBlock";
             case ASTNode::Kind::ParamList:
@@ -353,7 +363,8 @@ namespace lang
         std::stack<ASTNodePtr> m_nodeStack;
         ASTNodePtr m_astRoot;
         Token m_lastToken{ TokenType::END_OF_FILE, "", 0, 0, "" };
-        std::string m_savedOperator;
+        std::vector<std::string> m_savedOperators;
+        std::string m_savedLeadId;
         std::string m_currentVisibility;
 
         void executeAction(SemanticAction action);

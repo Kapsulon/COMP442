@@ -18,7 +18,8 @@ namespace lang
         while (!m_nodeStack.empty()) m_nodeStack.pop();
         m_astRoot = nullptr;
         m_lastToken = Token{ TokenType::END_OF_FILE, "", 0, 0, "" };
-        m_savedOperator = "";
+        m_savedOperators.clear();
+        m_savedLeadId.clear();
         m_currentVisibility = "";
         m_outDerivationSteps.clear();
         m_outParseErrors.clear();
@@ -119,18 +120,18 @@ namespace lang
         },
         {
             NonTerminal::classDecl, {
-                { Symbol::T(TokenType::CLASS), Symbol::T(TokenType::ID), Symbol::A(SemanticAction::MakeId), Symbol::N(NonTerminal::classInheritOpt), Symbol::T(TokenType::OPEN_BRACE), Symbol::A(SemanticAction::PushMarker), Symbol::N(NonTerminal::classMemberList), Symbol::T(TokenType::CLOSE_BRACE), Symbol::T(TokenType::SEMICOLON), Symbol::A(SemanticAction::MakeClass) }
+                { Symbol::T(TokenType::CLASS), Symbol::T(TokenType::ID), Symbol::A(SemanticAction::MakeId), Symbol::A(SemanticAction::PushMarker), Symbol::N(NonTerminal::classInheritOpt), Symbol::A(SemanticAction::MakeInheritList), Symbol::T(TokenType::OPEN_BRACE), Symbol::A(SemanticAction::PushMarker), Symbol::N(NonTerminal::classMemberList), Symbol::T(TokenType::CLOSE_BRACE), Symbol::T(TokenType::SEMICOLON), Symbol::A(SemanticAction::MakeClass) }
             }
         },
         {
             NonTerminal::classInheritOpt, {
-                { Symbol::T(TokenType::INHERITS), Symbol::T(TokenType::ID), Symbol::N(NonTerminal::classInheritTail) },
+                { Symbol::T(TokenType::INHERITS), Symbol::T(TokenType::ID), Symbol::A(SemanticAction::MakeId), Symbol::N(NonTerminal::classInheritTail) },
                 EPSILON
             }
         },
         {
             NonTerminal::classInheritTail, {
-                { Symbol::T(TokenType::COMMA), Symbol::T(TokenType::ID), Symbol::N(NonTerminal::classInheritTail) },
+                { Symbol::T(TokenType::COMMA), Symbol::T(TokenType::ID), Symbol::A(SemanticAction::MakeId), Symbol::N(NonTerminal::classInheritTail) },
                 EPSILON
             }
         },
@@ -182,7 +183,7 @@ namespace lang
                 { Symbol::T(TokenType::FLOAT_NUM), Symbol::A(SemanticAction::MakeNum) },
                 { Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::arithExpr), Symbol::T(TokenType::CLOSE_PARENTHESIS) },
                 { Symbol::T(TokenType::NOT), Symbol::N(NonTerminal::factor), Symbol::A(SemanticAction::MakeNotExpr) },
-                { Symbol::N(NonTerminal::sign), Symbol::N(NonTerminal::factor), Symbol::A(SemanticAction::MakeSignExpr) }
+                { Symbol::N(NonTerminal::sign), Symbol::A(SemanticAction::SaveOp), Symbol::N(NonTerminal::factor), Symbol::A(SemanticAction::MakeSignExpr) }
             }
         },
         {
@@ -192,8 +193,8 @@ namespace lang
         },
         {
             NonTerminal::funcDeclTail, {
-                { Symbol::N(NonTerminal::type), Symbol::T(TokenType::SEMICOLON) },
-                { Symbol::T(TokenType::VOID), Symbol::T(TokenType::SEMICOLON) }
+                { Symbol::N(NonTerminal::type), Symbol::A(SemanticAction::MakeType), Symbol::T(TokenType::SEMICOLON) },
+                { Symbol::T(TokenType::VOID), Symbol::A(SemanticAction::MakeType), Symbol::T(TokenType::SEMICOLON) }
             }
         },
         {
@@ -220,7 +221,7 @@ namespace lang
         },
         {
             NonTerminal::funcHeadTail, {
-                { Symbol::T(TokenType::DOUBLE_COLON), Symbol::T(TokenType::ID), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::A(SemanticAction::PushMarker), Symbol::N(NonTerminal::fParams), Symbol::T(TokenType::CLOSE_PARENTHESIS), Symbol::A(SemanticAction::MakeParamList), Symbol::T(TokenType::COLON), Symbol::N(NonTerminal::funcHeadReturn) },
+                { Symbol::T(TokenType::DOUBLE_COLON), Symbol::T(TokenType::ID), Symbol::A(SemanticAction::MakeId), Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::A(SemanticAction::PushMarker), Symbol::N(NonTerminal::fParams), Symbol::T(TokenType::CLOSE_PARENTHESIS), Symbol::A(SemanticAction::MakeParamList), Symbol::T(TokenType::COLON), Symbol::N(NonTerminal::funcHeadReturn) },
                 { Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::A(SemanticAction::PushMarker), Symbol::N(NonTerminal::fParams), Symbol::T(TokenType::CLOSE_PARENTHESIS), Symbol::A(SemanticAction::MakeParamList), Symbol::T(TokenType::COLON), Symbol::N(NonTerminal::funcHeadReturn) }
             }
         },
@@ -237,14 +238,14 @@ namespace lang
         },
         {
             NonTerminal::memberDecl, {
-                { Symbol::N(NonTerminal::type_no_id), Symbol::A(SemanticAction::MakeType), Symbol::T(TokenType::ID), Symbol::A(SemanticAction::MakeId), Symbol::A(SemanticAction::PushMarker), Symbol::N(NonTerminal::varArrayList), Symbol::A(SemanticAction::MakeDimList), Symbol::T(TokenType::SEMICOLON), Symbol::A(SemanticAction::MakeVarDecl) },
-                { Symbol::T(TokenType::ID), Symbol::A(SemanticAction::MakeType), Symbol::N(NonTerminal::memberAfterId) }
+                { Symbol::N(NonTerminal::type_no_id), Symbol::A(SemanticAction::MakeType), Symbol::T(TokenType::ID), Symbol::A(SemanticAction::MakeId), Symbol::A(SemanticAction::PushMarker), Symbol::N(NonTerminal::varArrayList), Symbol::A(SemanticAction::MakeDimList), Symbol::T(TokenType::SEMICOLON), Symbol::A(SemanticAction::MakeMemberVarDecl) },
+                { Symbol::T(TokenType::ID), Symbol::A(SemanticAction::SaveLeadId), Symbol::N(NonTerminal::memberAfterId) }
             }
         },
         {
             NonTerminal::memberAfterId, {
-                { Symbol::T(TokenType::ID), Symbol::A(SemanticAction::MakeId), Symbol::A(SemanticAction::PushMarker), Symbol::N(NonTerminal::varArrayList), Symbol::A(SemanticAction::MakeDimList), Symbol::T(TokenType::SEMICOLON), Symbol::A(SemanticAction::MakeVarDecl) },
-                { Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::N(NonTerminal::fParams), Symbol::T(TokenType::CLOSE_PARENTHESIS), Symbol::T(TokenType::COLON), Symbol::N(NonTerminal::funcDeclTail) },
+                { Symbol::A(SemanticAction::MakeSavedType), Symbol::T(TokenType::ID), Symbol::A(SemanticAction::MakeId), Symbol::A(SemanticAction::PushMarker), Symbol::N(NonTerminal::varArrayList), Symbol::A(SemanticAction::MakeDimList), Symbol::T(TokenType::SEMICOLON), Symbol::A(SemanticAction::MakeMemberVarDecl) },
+                { Symbol::T(TokenType::OPEN_PARENTHESIS), Symbol::A(SemanticAction::MakeSavedId), Symbol::A(SemanticAction::PushMarker), Symbol::N(NonTerminal::fParams), Symbol::T(TokenType::CLOSE_PARENTHESIS), Symbol::A(SemanticAction::MakeParamList), Symbol::T(TokenType::COLON), Symbol::N(NonTerminal::funcDeclTail), Symbol::A(SemanticAction::MakeFuncDecl) },
             }
         },
         {
@@ -814,9 +815,21 @@ namespace lang
                     m_nodeStack.push(makeNode(ASTNode::Kind::Id, m_lastToken.lexeme));
                     break;
                 }
+            case SemanticAction::MakeSavedId:
+                {
+                    if (!m_savedLeadId.empty())
+                        m_nodeStack.push(makeNode(ASTNode::Kind::Id, m_savedLeadId));
+                    break;
+                }
             case SemanticAction::MakeType:
                 {
                     m_nodeStack.push(makeNode(ASTNode::Kind::Type, m_lastToken.lexeme));
+                    break;
+                }
+            case SemanticAction::MakeSavedType:
+                {
+                    if (!m_savedLeadId.empty())
+                        m_nodeStack.push(makeNode(ASTNode::Kind::Type, m_savedLeadId));
                     break;
                 }
             case SemanticAction::MakeNum:
@@ -852,6 +865,21 @@ namespace lang
                     m_nodeStack.pop();
                     auto type = m_nodeStack.top();
                     m_nodeStack.pop();
+                    auto node = makeNode(ASTNode::Kind::VarDecl);
+                    node->children = { type, id, dimList };
+                    m_nodeStack.push(node);
+                    break;
+                }
+            case SemanticAction::MakeMemberVarDecl:
+                {
+                    if (m_nodeStack.size() < 3)
+                        break;
+                    auto dimList = m_nodeStack.top();
+                    m_nodeStack.pop();
+                    auto id = m_nodeStack.top();
+                    m_nodeStack.pop();
+                    auto type = m_nodeStack.top();
+                    m_nodeStack.pop();
                     auto node = makeNode(ASTNode::Kind::VarDecl, m_currentVisibility);
                     node->children = { type, id, dimList };
                     m_nodeStack.push(node);
@@ -868,6 +896,11 @@ namespace lang
             case SemanticAction::MakeClass:
                 {
                     auto members = popToMarker(m_nodeStack);
+                    ASTNodePtr inherits;
+                    if (!m_nodeStack.empty() && !isMarker(m_nodeStack.top()) && m_nodeStack.top()->kind == ASTNode::Kind::InheritList) {
+                        inherits = m_nodeStack.top();
+                        m_nodeStack.pop();
+                    }
                     ASTNodePtr id;
                     if (!m_nodeStack.empty() && !isMarker(m_nodeStack.top()) && m_nodeStack.top()->kind == ASTNode::Kind::Id) {
                         id = m_nodeStack.top();
@@ -876,8 +909,21 @@ namespace lang
                     auto node = makeNode(ASTNode::Kind::Class);
                     if (id)
                         node->children.push_back(id);
+                    if (inherits)
+                        node->children.push_back(inherits);
                     for (auto &m : members) node->children.push_back(m);
                     m_nodeStack.push(node);
+                    m_currentVisibility.clear();
+                    break;
+                }
+            case SemanticAction::MakeInheritList:
+                {
+                    auto children = popToMarker(m_nodeStack);
+                    if (!children.empty()) {
+                        auto node = makeNode(ASTNode::Kind::InheritList);
+                        node->children = std::move(children);
+                        m_nodeStack.push(node);
+                    }
                     break;
                 }
             case SemanticAction::MakeClassList:
@@ -898,10 +944,35 @@ namespace lang
                     m_nodeStack.pop();
                     auto paramList = m_nodeStack.top();
                     m_nodeStack.pop();
-                    auto id = m_nodeStack.top();
+                    auto name = m_nodeStack.top();
                     m_nodeStack.pop();
+
+                    ASTNodePtr id = name;
+                    if (!m_nodeStack.empty() && !isMarker(m_nodeStack.top()) && m_nodeStack.top()->kind == ASTNode::Kind::Id) {
+                        auto scope = m_nodeStack.top();
+                        m_nodeStack.pop();
+                        auto scopedName = makeNode(ASTNode::Kind::MemberAccess);
+                        scopedName->children = { scope, name };
+                        id = scopedName;
+                    }
+
                     auto node = makeNode(ASTNode::Kind::FuncDef);
                     node->children = { type, id, paramList, statBlock };
+                    m_nodeStack.push(node);
+                    break;
+                }
+            case SemanticAction::MakeFuncDecl:
+                {
+                    if (m_nodeStack.size() < 3)
+                        break;
+                    auto type = m_nodeStack.top();
+                    m_nodeStack.pop();
+                    auto paramList = m_nodeStack.top();
+                    m_nodeStack.pop();
+                    auto id = m_nodeStack.top();
+                    m_nodeStack.pop();
+                    auto node = makeNode(ASTNode::Kind::FuncDecl, m_currentVisibility);
+                    node->children = { type, id, paramList };
                     m_nodeStack.push(node);
                     break;
                 }
@@ -1026,11 +1097,16 @@ namespace lang
                 {
                     if (m_nodeStack.size() < 2)
                         break;
+                    std::string op;
+                    if (!m_savedOperators.empty()) {
+                        op = m_savedOperators.back();
+                        m_savedOperators.pop_back();
+                    }
                     auto right = m_nodeStack.top();
                     m_nodeStack.pop();
                     auto left = m_nodeStack.top();
                     m_nodeStack.pop();
-                    auto node = makeNode(ASTNode::Kind::AddOp, m_savedOperator);
+                    auto node = makeNode(ASTNode::Kind::AddOp, op);
                     node->children = { left, right };
                     m_nodeStack.push(node);
                     break;
@@ -1039,11 +1115,16 @@ namespace lang
                 {
                     if (m_nodeStack.size() < 2)
                         break;
+                    std::string op;
+                    if (!m_savedOperators.empty()) {
+                        op = m_savedOperators.back();
+                        m_savedOperators.pop_back();
+                    }
                     auto right = m_nodeStack.top();
                     m_nodeStack.pop();
                     auto left = m_nodeStack.top();
                     m_nodeStack.pop();
-                    auto node = makeNode(ASTNode::Kind::MultOp, m_savedOperator);
+                    auto node = makeNode(ASTNode::Kind::MultOp, op);
                     node->children = { left, right };
                     m_nodeStack.push(node);
                     break;
@@ -1052,11 +1133,16 @@ namespace lang
                 {
                     if (m_nodeStack.size() < 2)
                         break;
+                    std::string op;
+                    if (!m_savedOperators.empty()) {
+                        op = m_savedOperators.back();
+                        m_savedOperators.pop_back();
+                    }
                     auto right = m_nodeStack.top();
                     m_nodeStack.pop();
                     auto left = m_nodeStack.top();
                     m_nodeStack.pop();
-                    auto node = makeNode(ASTNode::Kind::RelOp, m_savedOperator);
+                    auto node = makeNode(ASTNode::Kind::RelOp, op);
                     node->children = { left, right };
                     m_nodeStack.push(node);
                     break;
@@ -1076,9 +1162,14 @@ namespace lang
                 {
                     if (m_nodeStack.empty())
                         break;
+                    std::string op;
+                    if (!m_savedOperators.empty()) {
+                        op = m_savedOperators.back();
+                        m_savedOperators.pop_back();
+                    }
                     auto operand = m_nodeStack.top();
                     m_nodeStack.pop();
-                    auto node = makeNode(ASTNode::Kind::SignExpr, m_lastToken.lexeme);
+                    auto node = makeNode(ASTNode::Kind::SignExpr, op);
                     node->children = { operand };
                     m_nodeStack.push(node);
                     break;
@@ -1129,7 +1220,12 @@ namespace lang
                 }
             case SemanticAction::SaveOp:
                 {
-                    m_savedOperator = m_lastToken.lexeme;
+                    m_savedOperators.push_back(m_lastToken.lexeme);
+                    break;
+                }
+            case SemanticAction::SaveLeadId:
+                {
+                    m_savedLeadId = m_lastToken.lexeme;
                     break;
                 }
             case SemanticAction::SaveVisibility:

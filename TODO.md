@@ -1,3 +1,0 @@
-- [ ] Fix class inheritence
-- [ ] Fix function member declaration
-- [ ] Add namespace access specifier action
