@@ -1,0 +1,44 @@
+START -> <prog>
+prog -> <classList> <funcDefList> 'main' <funcBody>
+classList -> <classDecl> <classList>
+classDecl -> 'class' 'id' <classInheritOpt> '{' <classMemberList> '}' ';'
+classInheritOpt -> EPSILON
+classMemberList -> EPSILON
+classList -> <classDecl> <classList>
+classDecl -> 'class' 'id' <classInheritOpt> '{' <classMemberList> '}' ';'
+classInheritOpt -> EPSILON
+classMemberList -> <visibility> <memberDecl> <classMemberList>
+visibility -> 'private'
+memberDecl -> <type_no_id> 'id' <varArrayList> ';'
+type_no_id -> 'float'
+varArrayList -> EPSILON
+classMemberList -> <visibility> <memberDecl> <classMemberList>
+visibility -> 'public'
+memberDecl -> <type_no_id> 'id' <varArrayList> ';'
+type_no_id -> 'float'
+varArrayList -> EPSILON
+classMemberList -> EPSILON
+classList -> <classDecl> <classList>
+classDecl -> 'class' 'id' <classInheritOpt> '{' <classMemberList> '}' ';'
+classInheritOpt -> EPSILON
+classMemberList -> <visibility> <memberDecl> <classMemberList>
+visibility -> 'public'
+memberDecl -> 'id' <memberAfterId>
+memberAfterId -> 'id' <varArrayList> ';'
+varArrayList -> EPSILON
+classMemberList -> <visibility> <memberDecl> <classMemberList>
+visibility -> 'public'
+memberDecl -> <type_no_id> 'id' <varArrayList> ';'
+type_no_id -> 'float'
+varArrayList -> EPSILON
+classMemberList -> <visibility> <memberDecl> <classMemberList>
+visibility -> 'public'
+memberDecl -> <type_no_id> 'id' <varArrayList> ';'
+type_no_id -> 'float'
+varArrayList -> EPSILON
+classMemberList -> EPSILON
+classList -> EPSILON
+funcDefList -> EPSILON
+funcBody -> <localDeclOpt> 'do' <stmtList> 'end'
+localDeclOpt -> EPSILON
+stmtList -> EPSILON

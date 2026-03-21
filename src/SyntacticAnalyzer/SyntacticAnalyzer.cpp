@@ -63,7 +63,7 @@ namespace lang
 
         std::chrono::duration<double, std::milli> elapsed = end - start;
 
-        spdlog::info("{}: Lexed {} tokens in {:.2f}ms", m_currentFilePath, m_tokens.size(), elapsed.count());
+        spdlog::info("{}: Lexed {} tokens in \t {:.2f}ms", m_currentFilePath, m_tokens.size(), elapsed.count());
     }
 
     // clang-format off
@@ -665,6 +665,11 @@ namespace lang
         out << "}\n";
     }
 
+    const LexicalAnalyzer &SyntacticAnalyzer::getLexer() const
+    {
+        return m_lexicalAnalyzer;
+    }
+
 #define SYNTAX_ERROR()                                                                   \
     if (m_problems.getWarningCount() + m_problems.getErrorCount() >= maxErrors) {        \
         m_problems.error("Fatal Error:", "too many syntax errors; aborting", { token }); \
@@ -783,7 +788,7 @@ namespace lang
         m_problems.displayProblems(m_lexicalAnalyzer);
 
         spdlog::info(
-            "{}: Parsed in {:.2f}ms [" CYAN "{} info(s)" RESET ", " YELLOW "{} warning(s)" RESET ", " RED "{} error(s)" RESET "]",
+            "{}: Parsed in \t\t {:.2f}ms \t [" CYAN "{} info(s)" RESET ", " YELLOW "{} warning(s)" RESET ", " RED "{} error(s)" RESET "]",
             m_currentFilePath,
             elapsed.count(),
             m_problems.getInfoCount(),
@@ -1298,5 +1303,10 @@ namespace lang
         }
 
         return res;
+    }
+
+    std::string_view SyntacticAnalyzer::getCurrentFilePath() const
+    {
+        return m_currentFilePath;
     }
 } // namespace lang

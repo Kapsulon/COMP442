@@ -349,9 +349,13 @@ namespace lang
         std::string getFirstSet();
         std::string getFollowSet();
 
+        std::string_view getCurrentFilePath() const;
+
         void outputSyntaxErrors();
         void outputDerivationSteps();
         void outputDotAST();
+
+        const LexicalAnalyzer &getLexer() const;
 
     private:
         LexicalAnalyzer m_lexicalAnalyzer;
