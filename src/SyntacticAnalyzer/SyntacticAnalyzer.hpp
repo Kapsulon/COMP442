@@ -11,6 +11,7 @@
 
 #include "AST/ASTNode.hpp"
 #include "LexicalAnalyzer/LexicalAnalyzer.hpp"
+#include "Problems/Problems.hpp"
 
 // clang-format off
 #define EPSILON {}
@@ -357,7 +358,7 @@ namespace lang
         std::vector<Token> m_tokens;
         std::string m_currentFilePath;
 
-        std::string m_outParseErrors;
+        Problems m_problems;
         std::string m_outDerivationSteps;
 
         std::stack<ASTNodePtr> m_nodeStack;
@@ -378,9 +379,6 @@ namespace lang
         FirstSet generateFirstSet();
         FollowSet generateFollowSet();
         ParseTable generateParseTable();
-
-        void error(const Token &token, const std::string &message);
-        void warn(const Token &token, const std::string &message);
 
         static const Grammar grammar;
         const FirstSet m_firstSet;

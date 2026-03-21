@@ -7,6 +7,7 @@
 #include "LexicalAnalyzer/LexicalAnalyzer.hpp"
 #include "SyntacticAnalyzer.hpp"
 #include "spdlog/spdlog.h"
+#include "utils/colors.hpp"
 
 namespace lang
 {
@@ -22,7 +23,7 @@ namespace lang
         m_savedLeadId.clear();
         m_currentVisibility = "";
         m_outDerivationSteps.clear();
-        m_outParseErrors.clear();
+        m_problems.clear();
 
         m_currentFilePath = path;
 
@@ -563,7 +564,7 @@ namespace lang
         if (!out.is_open())
             spdlog::error("Failed to open output file for syntax errors: {}", errorFilePath);
 
-        out << m_outParseErrors;
+        out << m_problems.getProblems(m_lexicalAnalyzer);
     }
 
     void SyntacticAnalyzer::writeDerivationSteps(const NonTerminal &A, const ParseTableEntry &entry)
@@ -664,10 +665,10 @@ namespace lang
         out << "}\n";
     }
 
-#define SYNTAX_ERROR()                                    \
-    if (++errorCount >= maxErrors) {                      \
-        error(token, "too many syntax errors; aborting"); \
-        return;                                           \
+#define SYNTAX_ERROR()                                                                   \
+    if (m_problems.getWarningCount() + m_problems.getErrorCount() >= maxErrors) {        \
+        m_problems.error("Fatal Error:", "too many syntax errors; aborting", { token }); \
+        return;                                                                          \
     }
 
     void SyntacticAnalyzer::parse()
@@ -678,12 +679,12 @@ namespace lang
         st.push(Symbol::N(NonTerminal::START));
 
         std::uint32_t idx = 0;
-        std::uint32_t errorCount = 0;
         constexpr std::uint32_t maxErrors = 20;
 
         while (!st.empty()) {
             if (idx >= m_tokens.size()) {
-                error(m_tokens.empty() ? Token{ TokenType::END_OF_FILE, "", 0, 0, "" } : m_tokens.back(), "unexpected end of token stream");
+                m_problems.error(
+                    "Syntax Error", "unexpected end of token stream", { m_tokens.empty() ? Token{ TokenType::END_OF_FILE, "", 0, 0, "" } : m_tokens.back() });
                 return;
             }
 
@@ -701,23 +702,28 @@ namespace lang
                     idx++;
                 } else {
                     if (*top_term == TokenType::END_OF_FILE) {
-                        warn(token, std::format(R"(discarding unexpected token "{}" before end of file)", lang::tokenTypeToCompString(token.type)));
+                        m_problems.warn(
+                            "Syntax Error (recovered)",
+                            std::format(R"(discarding unexpected token "{}" before end of file)", lang::tokenTypeToCompString(token.type)),
+                            { token });
                         idx++;
                     } else if (token.type == TokenType::END_OF_FILE || isLikelyMissingDelimiter(*top_term)) {
-                        warn(
-                            token,
+                        m_problems.warn(
+                            "Syntax Error (recovered)",
                             std::format(
                                 R"(expected "{}", but got "{}"; inserting missing token)",
                                 lang::tokenTypeToCompString(*top_term),
-                                lang::tokenTypeToCompString(token.type)));
+                                lang::tokenTypeToCompString(token.type)),
+                            { token });
                         st.pop();
                     } else {
-                        warn(
-                            token,
+                        m_problems.warn(
+                            "Syntax Error (recovered)",
                             std::format(
                                 R"(expected "{}", but got "{}"; discarding unexpected token)",
                                 lang::tokenTypeToCompString(*top_term),
-                                lang::tokenTypeToCompString(token.type)));
+                                lang::tokenTypeToCompString(token.type)),
+                            { token });
                         idx++;
                     }
 
@@ -730,10 +736,10 @@ namespace lang
                     auto &entry = m_parseTable.at(A).at(token.type);
 
                     if (std::holds_alternative<tags::SyncTag>(entry)) {
-                        warn(
-                            token,
-                            std::format(
-                                R"(synchronizing: popping non-terminal <{}> on lookahead "{}")", to_string(A), lang::tokenTypeToCompString(token.type)));
+                        m_problems.warn(
+                            "Syntax Error (recovered)",
+                            std::format(R"(synchronizing: popping non-terminal <{}> on lookahead "{}")", to_string(A), lang::tokenTypeToCompString(token.type)),
+                            { token });
                         st.pop();
                         SYNTAX_ERROR();
                         continue;
@@ -746,18 +752,20 @@ namespace lang
                     for (auto it = prod.rbegin(); it != prod.rend(); ++it) st.push(*it);
                 } else {
                     if (token.type == TokenType::END_OF_FILE) {
-                        error(
-                            token,
-                            std::format(R"(no production for non-terminal <{}> with lookahead "{}")", to_string(A), lang::tokenTypeToCompString(token.type)));
+                        m_problems.error(
+                            "Syntax Error",
+                            std::format(R"(no production for non-terminal <{}> with lookahead "{}")", to_string(A), lang::tokenTypeToCompString(token.type)),
+                            { token });
                         return;
                     }
 
-                    warn(
-                        token,
+                    m_problems.warn(
+                        "Syntax Error (recovered)",
                         std::format(
                             R"(no production for non-terminal <{}> with lookahead "{}"; discarding token)",
                             to_string(A),
-                            lang::tokenTypeToCompString(token.type)));
+                            lang::tokenTypeToCompString(token.type)),
+                        { token });
                     idx++;
                     SYNTAX_ERROR();
                 }
@@ -765,12 +773,22 @@ namespace lang
         }
 
         if (idx < m_tokens.size()) {
-            warn(m_tokens[idx], std::format("skipping {} extra tokens after parse completion", m_tokens.size() - idx));
+            m_problems.warn(
+                "Syntax Error (recovered)", std::format("skipping {} extra tokens after parse completion", m_tokens.size() - idx), { m_tokens[idx] });
         }
 
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> elapsed = end - start;
-        spdlog::info("{}: Parsed in {:.2f}ms with {} syntax error(s)", m_currentFilePath, elapsed.count(), errorCount);
+
+        m_problems.displayProblems(m_lexicalAnalyzer);
+
+        spdlog::info(
+            "{}: Parsed in {:.2f}ms [" CYAN "{} info(s)" RESET ", " YELLOW "{} warning(s)" RESET ", " RED "{} error(s)" RESET "]",
+            m_currentFilePath,
+            elapsed.count(),
+            m_problems.getInfoCount(),
+            m_problems.getWarningCount(),
+            m_problems.getErrorCount());
     }
 
     ASTNodePtr SyntacticAnalyzer::getAST() const
@@ -1234,83 +1252,6 @@ namespace lang
                     break;
                 }
         }
-    }
-
-    static std::string underlineProblematicToken(const Token &token)
-    {
-        std::string res;
-        if (token.pos > 1)
-            res.append(static_cast<size_t>(token.pos - 1), ' ');
-        res.push_back('^');
-        if (token.lexeme.size() > 1)
-            res.append(token.lexeme.size() - 1, '~');
-        return res;
-    }
-
-    static std::string expandTabs(std::string_view line)
-    {
-        std::string out;
-        out.reserve(line.size());
-
-        std::uint32_t col = 1;
-        for (char ch : line) {
-            if (ch == '\r')
-                continue;
-            if (ch == '\t') {
-                auto spaces = static_cast<size_t>(NEXT_TAB_POS(col));
-                out.append(spaces, ' ');
-                col += static_cast<std::uint32_t>(spaces);
-            } else {
-                out.push_back(ch);
-                col += 1;
-            }
-        }
-
-        return out;
-    }
-
-    void SyntacticAnalyzer::error(const Token &token, const std::string &message)
-    {
-        std::string line = expandTabs(m_lexicalAnalyzer.getLine(token.line));
-        std::string underline = underlineProblematicToken(token);
-
-        std::string err = std::format(
-            "{}:{}:{}: Syntax error: {}\n"
-            "  {}\t|\t{}\n"
-            "  \t|\t{}\n",
-            token.file_path,
-            token.line,
-            token.pos,
-            message,
-            token.line,
-            line,
-            underline);
-
-        spdlog::error(err);
-
-        m_outParseErrors.append(err).append("\n");
-    }
-
-    void SyntacticAnalyzer::warn(const Token &token, const std::string &message)
-    {
-        std::string line = expandTabs(m_lexicalAnalyzer.getLine(token.line));
-        std::string underline = underlineProblematicToken(token);
-
-        std::string err = std::format(
-            "{}:{}:{}: Syntax error (recovered): {}\n"
-            "  {}\t|\t{}\n"
-            "  \t|\t{}\n",
-            token.file_path,
-            token.line,
-            token.pos,
-            message,
-            token.line,
-            line,
-            underline);
-
-        spdlog::warn(err);
-
-        m_outParseErrors.append(err).append("\n");
     }
 
     std::string SyntacticAnalyzer::getFirstSet()
