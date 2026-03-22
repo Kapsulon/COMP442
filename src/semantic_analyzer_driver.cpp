@@ -21,7 +21,7 @@ int main(int argc, char **argv)
     for (int idx = 1; idx != argc; idx++) {
         semanticAnalyzer.openFile(argv[idx]);
         semanticAnalyzer.parse();
-        semanticAnalyzer.outputSymbolTables();
+        semanticAnalyzer.outputSymbolTable();
     }
 
     return 0;
