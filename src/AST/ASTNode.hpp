@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "LexicalAnalyzer/LexicalAnalyzer.hpp"
+
 namespace lang
 {
     struct ASTNode {
@@ -43,6 +45,7 @@ namespace lang
 
         Kind kind;
         std::string lexeme;
+        Token token; // source token for error location reporting
         std::vector<std::shared_ptr<ASTNode>> children;
         ASTNode *parent = nullptr;
     };

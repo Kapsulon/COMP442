@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <initializer_list>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "LexicalAnalyzer/LexicalAnalyzer.hpp"
@@ -24,6 +25,7 @@ namespace lang
 
         std::string getProblems(const LexicalAnalyzer &lexer) const;
         void displayProblems(const LexicalAnalyzer &lexer) const;
+        void outputProblems(const LexicalAnalyzer &lexer, std::string_view path) const;
 
         void clear();
 

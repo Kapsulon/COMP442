@@ -22,6 +22,12 @@ int main(int argc, char **argv)
         semanticAnalyzer.openFile(argv[idx]);
         semanticAnalyzer.parse();
         semanticAnalyzer.outputSymbolTable();
+        semanticAnalyzer.outputSemanticErrors();
+        if (idx != argc - 1)
+            std::cout
+                << "========================================================================================================================================="
+                   "=================================\n"
+                << std::endl;
     }
 
     return 0;

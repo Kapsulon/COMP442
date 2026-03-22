@@ -1,0 +1,9 @@
+assignments/assignment4/resources/bubblesort.src:60:5: 13.3 array parameter using wrong number of dimensions: parameter 1 of 'printarray' expects array of 1 dimension(s), got 0
+  60	|	    printarray(arr, 7); 
+  	|	    ^~~~~~~~~~
+assignments/assignment4/resources/bubblesort.src:61:5: 13.3 array parameter using wrong number of dimensions: parameter 1 of 'bubbleSort' expects array of 1 dimension(s), got 0
+  61	|	    bubbleSort(arr, 7);
+  	|	    ^~~~~~~~~~
+assignments/assignment4/resources/bubblesort.src:62:5: 13.3 array parameter using wrong number of dimensions: parameter 1 of 'printarray' expects array of 1 dimension(s), got 0
+  62	|	    printarray(arr, 7); 
+  	|	    ^~~~~~~~~~

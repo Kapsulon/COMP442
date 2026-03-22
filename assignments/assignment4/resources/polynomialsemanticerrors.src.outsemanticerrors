@@ -1,0 +1,84 @@
+assignments/assignment4/resources/polynomialsemanticerrors.src:4:12: 6.2 undefined member function declaration: member function 'POLYNOMIAL::evaluate2' is declared but has no definition
+  4	|	    public evaluate2(float x) : float;                                // 6.2
+  	|	           ^~~~~~~~~
+assignments/assignment4/resources/polynomialsemanticerrors.src:7:7: 8.1 multiply declared class: class 'POLYNOMIAL' was already declared
+  7	|	class POLYNOMIAL {                                                        // 8.1
+  	|	      ^~~~~~~~~~
+assignments/assignment4/resources/polynomialsemanticerrors.src:9:16: 6.2 undefined member function declaration: member function 'POLYNOMIAL::evaluate' is declared but has no definition
+  9	|	        public evaluate(integer x) : integer;                             // 9.2
+  	|	               ^~~~~~~~
+assignments/assignment4/resources/polynomialsemanticerrors.src:9:16: 9.2 overloaded member function: member function 'POLYNOMIAL::evaluate' is overloaded
+  9	|	        public evaluate(integer x) : integer;                             // 9.2
+  	|	               ^~~~~~~~
+assignments/assignment4/resources/polynomialsemanticerrors.src:15:21: 8.3 multiply declared data member in class: data member 'b' in class 'LINEAR' was already declared
+  15	|	    private integer b;                                                // 8.3
+  	|	                    ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:17:12: 9.3 overridden member function: member function 'LINEAR::evaluate' overrides 'POLYNOMIAL::evaluate'
+  17	|	    public evaluate(float x) : float;                                 // 9.3
+  	|	           ^~~~~~~~
+assignments/assignment4/resources/polynomialsemanticerrors.src:25:12: 9.3 overridden member function: member function 'QUADRATIC::evaluate' overrides 'POLYNOMIAL::evaluate'
+  25	|	    public evaluate(float x) : float;                                 // 9.3
+  	|	           ^~~~~~~~
+assignments/assignment4/resources/polynomialsemanticerrors.src:32:7: 14.1 circular class dependency: circular class dependency detected involving class 'D'
+  32	|	class D inherits C {
+  	|	      ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:53:13: 11.1 undeclared local variable: 'new_functiontion' is undeclared
+  53	|	    return (new_functiontion);
+  	|	            ^~~~~~~~~~~~~~~~
+assignments/assignment4/resources/polynomialsemanticerrors.src:80:30: 10.1 type error in expression: operands of '*' have incompatible types 'float' and 'int'
+  80	|	    new_function.a = A + B * 3;                                           // 10.1
+  	|	                             ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:82:22: 10.2 type error in assignment statement: cannot assign 'int' to 'float'
+  82	|	    new_function.c = 1;                                                   // 10.2 
+  	|	                     ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:83:13: 10.3 type error in return statement: returning 'int' from function declared to return 'QUADRATIC'
+  83	|	    return (1);                                                           // 10.3
+  	|	            ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:86:12: 6.1 undeclared member function definition: definition provided for undeclared member function 'QUADRATIC::build2'
+  86	|	QUADRATIC::build2(float A, float B, float C) : QUADRATIC                  // 6.1
+  	|	           ^~~~~~
+assignments/assignment4/resources/polynomialsemanticerrors.src:97:1: 8.2 multiply declared free function: free function 'f' with this signature was already declared
+  97	|	f(integer i) : void do end                                                // 8.2
+  	|	^
+assignments/assignment4/resources/polynomialsemanticerrors.src:98:1: 9.1 overloaded free function: free function 'f' is overloaded
+  98	|	f(integer i, integer j) : integer do end                                  // 9.1
+  	|	^
+assignments/assignment4/resources/polynomialsemanticerrors.src:106:7: 11.5 undeclared class: type 'a' is not a declared class
+  106	|	    a a;                                                                  // 11.5
+  	|	      ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:111:11: 8.4 multiply declared variable in function: variable 'counter' in function 'main' was already declared
+  111	|	    float counter;                                                        // 8.4
+  	|	          ^~~~~~~
+assignments/assignment4/resources/polynomialsemanticerrors.src:118:17: 11.3 undeclared member function: class 'C' has no member function 'f'
+  118	|	    counter = c.f();                                                      // 11.3
+  	|	                ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:119:5: 11.4 undeclared/undefined free function: function 'undefined' is not declared
+  119	|	    undefined();                                                          // 11.4
+  	|	    ^~~~~~~~~
+assignments/assignment4/resources/polynomialsemanticerrors.src:120:5: 10.2 type error in assignment statement: cannot assign 'a' to 'int'
+  120	|	    counter = a;                                                          // 11.1
+  	|	    ^~~~~~~
+assignments/assignment4/resources/polynomialsemanticerrors.src:121:5: 12.1 function call with wrong number of parameters: 'f' expects 1 parameter(s), got 3
+  121	|	    f(1,1,1);                                                             // 12.1
+  	|	    ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:122:5: 12.1 function call with wrong number of parameters: 'f' expects 1 parameter(s), got 2
+  122	|	    f(1.2,1);                                                             // 12.2   
+  	|	    ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:124:10: 13.1 use of array with wrong number of dimensions: expression of type 'int' is not an array but is indexed
+  124	|	    i[2][1.3] = 2;                                                        // 13.2
+  	|	         ^~~
+assignments/assignment4/resources/polynomialsemanticerrors.src:124:10: 13.2 array index is not an integer: array index must be integer, got 'float'
+  124	|	    i[2][1.3] = 2;                                                        // 13.2
+  	|	         ^~~
+assignments/assignment4/resources/polynomialsemanticerrors.src:125:5: 13.3 array parameter using wrong number of dimensions: parameter 1 of 'f3' expects array of 2 dimension(s), got 3
+  125	|	    f3(j);                                                                // 13.3
+  	|	    ^~
+assignments/assignment4/resources/polynomialsemanticerrors.src:126:5: 15.1 "." operator used on non-class type: '.' operator used on variable of type 'int' which is not a class type
+  126	|	    counter.x = 1;                                                        // 15.1
+  	|	    ^~~~~~~
+assignments/assignment4/resources/polynomialsemanticerrors.src:127:5: 11.1 undeclared local variable: 'self' is undeclared
+  127	|	    self = 1;                                                             // 15.3
+  	|	    ^~~~
+assignments/assignment4/resources/polynomialsemanticerrors.src:128:8: 11.2 undeclared member variable: class 'LINEAR' has no data member 'self'
+  128	|	    f1.self = 1;                                                          // 15.2
+  	|	       ^~~~

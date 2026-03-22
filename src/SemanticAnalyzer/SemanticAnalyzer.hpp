@@ -4,7 +4,6 @@
 #include <cctype>
 #include <functional>
 #include <memory>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -74,10 +73,8 @@ namespace lang
         {
             if (src == "public")
                 return Visibility::Public;
-
             if (src == "private")
                 return Visibility::Private;
-
             return Visibility::None;
         }
 
@@ -87,9 +84,10 @@ namespace lang
         };
 
         Kind kind = Kind::None;
-        std::string name = "";
+        std::string name;
         Signature signature;
         Visibility visibility = Visibility::None;
+        Token token;
 
         std::vector<SymbolTableNode *> table;
         SymbolTableNode *parent = nullptr;
@@ -101,20 +99,20 @@ namespace lang
         ~SemanticAnalyzer();
 
         void openFile(std::string_view path);
-
         void parse();
-
         void outputSymbolTable() const;
+        void outputSemanticErrors() const;
 
     private:
         Problems m_problems;
         SyntacticAnalyzer m_syntacticAnalyzer;
         SymbolTableNode *m_symbolTable = nullptr;
         std::unordered_map<std::string, std::string> m_classTypeNames;
+        std::shared_ptr<const ASTNode> m_ast;
 
         SymbolTableNode *generateSymbolTable(std::shared_ptr<const ASTNode> ast);
 
-        SymbolTableNode *makeSymbol(SymbolTableNode::Kind kind, const std::string &name, SymbolTableNode *parent) const;
+        SymbolTableNode *makeSymbol(SymbolTableNode::Kind kind, const std::string &name, SymbolTableNode *parent, Token token = {}) const;
         SymbolTableNode *findClassSymbol(SymbolTableNode *globalTable, const std::string &className) const;
         SymbolTableNode *findMemberFunctionSymbol(
             SymbolTableNode *classNode, const std::string &functionName, const std::vector<std::string> &paramTypes, const std::string &returnType) const;
@@ -133,9 +131,47 @@ namespace lang
         tabulate::Table::Row_t renderRow(const SymbolTableNode *node) const;
         tabulate::Table renderTable(const SymbolTableNode *node) const;
         std::string renderSymbolTable() const;
-
         static std::string GetFullNamespace(const SymbolTableNode *node);
 
         void semanticChecks();
+
+        void checkMultiplyDeclared(SymbolTableNode *globalTable);
+        void checkMultiplyDeclaredInFunction(SymbolTableNode *funcNode);
+        void checkFunctionDeclarationDefinitionParity(SymbolTableNode *globalTable);
+        void checkOverloadsAndOverrides(SymbolTableNode *globalTable);
+        void checkShadowing(SymbolTableNode *globalTable);
+        void checkCircularDependencies(SymbolTableNode *globalTable);
+        void checkUndeclaredClassTypes(SymbolTableNode *globalTable);
+
+        struct ScopeContext {
+            SymbolTableNode *globalTable = nullptr;
+            SymbolTableNode *classNode = nullptr;
+            SymbolTableNode *functionNode = nullptr;
+        };
+
+        void checkAllFunctionBodies(SymbolTableNode *globalTable);
+        void checkStatBlock(std::shared_ptr<const ASTNode> statBlock, const ScopeContext &ctx);
+        void checkStatement(std::shared_ptr<const ASTNode> stmt, const ScopeContext &ctx);
+        void checkAssignStat(std::shared_ptr<const ASTNode> node, const ScopeContext &ctx);
+        void checkReturnStat(std::shared_ptr<const ASTNode> node, const ScopeContext &ctx);
+        void checkFuncCallStat(std::shared_ptr<const ASTNode> node, const ScopeContext &ctx);
+
+        std::string inferType(std::shared_ptr<const ASTNode> expr, const ScopeContext &ctx);
+        std::string inferTypeId(std::shared_ptr<const ASTNode> node, const ScopeContext &ctx);
+        std::string inferTypeMemberAccess(std::shared_ptr<const ASTNode> node, const ScopeContext &ctx);
+        std::string inferTypeIndexedVar(std::shared_ptr<const ASTNode> node, const ScopeContext &ctx);
+        std::string inferTypeFuncCall(std::shared_ptr<const ASTNode> node, const ScopeContext &ctx);
+
+        SymbolTableNode *lookupInScope(const std::string &name, const ScopeContext &ctx) const;
+        SymbolTableNode *lookupInClass(SymbolTableNode *classNode, const std::string &name) const;
+        SymbolTableNode *findClassByName(const std::string &name) const;
+        SymbolTableNode *findFreeFunctionByName(const std::string &name) const;
+        SymbolTableNode *findFreeFunctionByNameAndArgs(const std::string &name, const std::vector<std::string> &argTypes) const;
+
+        static int CountArrayDimensions(const std::string &type);
+        static std::string StripAllDimensions(const std::string &type);
+        static std::string StripOneDimension(const std::string &type);
+        static bool TypesCompatible(const std::string &a, const std::string &b);
+        std::vector<SymbolTableNode *> collectInheritedClasses(SymbolTableNode *classNode) const;
     };
 } // namespace lang

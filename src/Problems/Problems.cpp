@@ -1,6 +1,7 @@
 #include "Problems.hpp"
 #include <algorithm>
 #include <format>
+#include <fstream>
 #include <utility>
 #include "LexicalAnalyzer/LexicalAnalyzer.hpp"
 #include "spdlog/spdlog.h"
@@ -79,6 +80,9 @@ namespace lang
 
     std::string Problems::getProblemString(const LexicalAnalyzer &lexer, const Problem &problem) const
     {
+        if (problem.tokens.empty() || problem.tokens[0].line == 0)
+            return std::format("{}: {}: {}\n", problem.kind, problem.message, "(unknown location)");
+
         std::string line = expandTabs(lexer.getLine(problem.tokens[0].line));
         std::string underline = underlineProblematicTokens(problem.tokens);
 
@@ -121,6 +125,31 @@ namespace lang
                     spdlog::error(getProblemString(lexer, problem));
                     break;
             }
+        }
+    }
+
+    void Problems::outputProblems(const LexicalAnalyzer &lexer, std::string_view path) const
+    {
+        if (m_problems.empty())
+            return;
+
+        // Sort a copy by source line so errors appear in synchronized order
+        std::vector<Problem> sorted = m_problems;
+        std::stable_sort(sorted.begin(), sorted.end(), [](const Problem &a, const Problem &b) {
+            if (a.tokens.empty() || b.tokens.empty())
+                return false;
+            return a.tokens[0].line < b.tokens[0].line;
+        });
+
+        std::ofstream out{ std::string(path) };
+        if (!out.is_open()) {
+            spdlog::error("Failed to open semantic error output file: {}", path);
+            return;
+        }
+
+        for (const auto &problem : sorted) {
+            if (!problem.tokens.empty())
+                out << getProblemString(lexer, problem);
         }
     }
 

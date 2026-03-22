@@ -1,0 +1,6 @@
+assignments/assignment4/resources/polynomial.src:11:12: 9.3 overridden member function: member function 'LINEAR::evaluate' overrides 'POLYNOMIAL::evaluate'
+  11	|	    public evaluate(float x) : float;
+  	|	           ^~~~~~~~
+assignments/assignment4/resources/polynomial.src:20:12: 9.3 overridden member function: member function 'QUADRATIC::evaluate' overrides 'POLYNOMIAL::evaluate'
+  20	|	    public evaluate(float x) : float;
+  	|	           ^~~~~~~~

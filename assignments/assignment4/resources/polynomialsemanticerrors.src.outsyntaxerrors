@@ -1,0 +1,63 @@
+assignments/assignment4/resources/polynomialsemanticerrors.src:100:6: Syntax Error (recovered): expected "id", but got ":"; discarding unexpected token
+  100	|	f3(p1: integer[2][3]) : integer do end
+  	|	     ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:100:8: Syntax Error (recovered): expected "id", but got "integer"; discarding unexpected token
+  100	|	f3(p1: integer[2][3]) : integer do end
+  	|	       ^~~~~~~
+assignments/assignment4/resources/polynomialsemanticerrors.src:100:15: Syntax Error (recovered): expected "id", but got "["; discarding unexpected token
+  100	|	f3(p1: integer[2][3]) : integer do end
+  	|	              ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:100:16: Syntax Error (recovered): expected "id", but got "intNum"; discarding unexpected token
+  100	|	f3(p1: integer[2][3]) : integer do end
+  	|	               ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:100:17: Syntax Error (recovered): expected "id", but got "]"; discarding unexpected token
+  100	|	f3(p1: integer[2][3]) : integer do end
+  	|	                ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:100:18: Syntax Error (recovered): expected "id", but got "["; discarding unexpected token
+  100	|	f3(p1: integer[2][3]) : integer do end
+  	|	                 ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:100:19: Syntax Error (recovered): expected "id", but got "intNum"; discarding unexpected token
+  100	|	f3(p1: integer[2][3]) : integer do end
+  	|	                  ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:100:20: Syntax Error (recovered): expected "id", but got "]"; discarding unexpected token
+  100	|	f3(p1: integer[2][3]) : integer do end
+  	|	                   ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:100:21: Syntax Error (recovered): expected "id", but got ")"; discarding unexpected token
+  100	|	f3(p1: integer[2][3]) : integer do end
+  	|	                    ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:100:23: Syntax Error (recovered): expected "id", but got ":"; discarding unexpected token
+  100	|	f3(p1: integer[2][3]) : integer do end
+  	|	                      ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:100:25: Syntax Error (recovered): expected "id", but got "integer"; discarding unexpected token
+  100	|	f3(p1: integer[2][3]) : integer do end
+  	|	                        ^~~~~~~
+assignments/assignment4/resources/polynomialsemanticerrors.src:100:33: Syntax Error (recovered): expected "id", but got "do"; discarding unexpected token
+  100	|	f3(p1: integer[2][3]) : integer do end
+  	|	                                ^~
+assignments/assignment4/resources/polynomialsemanticerrors.src:100:36: Syntax Error (recovered): expected "id", but got "end"; discarding unexpected token
+  100	|	f3(p1: integer[2][3]) : integer do end
+  	|	                                   ^~~
+assignments/assignment4/resources/polynomialsemanticerrors.src:104:1: Syntax Error (recovered): expected "id", but got "main"; discarding unexpected token
+  104	|	main
+  	|	^~~~
+assignments/assignment4/resources/polynomialsemanticerrors.src:105:3: Syntax Error (recovered): expected "id", but got "local"; discarding unexpected token
+  105	|	  local 
+  	|	  ^~~~~
+assignments/assignment4/resources/polynomialsemanticerrors.src:106:7: Syntax Error (recovered): no production for non-terminal <fParamsArrayList> with lookahead "id"; discarding token
+  106	|	    a a;                                                                  // 11.5
+  	|	      ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:106:8: Syntax Error (recovered): no production for non-terminal <fParamsArrayList> with lookahead ";"; discarding token
+  106	|	    a a;                                                                  // 11.5
+  	|	       ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:107:5: Syntax Error (recovered): no production for non-terminal <fParamsArrayList> with lookahead "id"; discarding token
+  107	|	    C c;
+  	|	    ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:107:7: Syntax Error (recovered): no production for non-terminal <fParamsArrayList> with lookahead "id"; discarding token
+  107	|	    C c;
+  	|	      ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:107:8: Syntax Error (recovered): no production for non-terminal <fParamsArrayList> with lookahead ";"; discarding token
+  107	|	    C c;
+  	|	       ^
+assignments/assignment4/resources/polynomialsemanticerrors.src:107:8: Fatal Error:: too many syntax errors; aborting
+  107	|	    C c;
+  	|	       ^

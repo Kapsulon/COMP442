@@ -673,7 +673,7 @@ namespace lang
 #define SYNTAX_ERROR()                                                                   \
     if (m_problems.getWarningCount() + m_problems.getErrorCount() >= maxErrors) {        \
         m_problems.error("Fatal Error:", "too many syntax errors; aborting", { token }); \
-        return;                                                                          \
+        goto parse_done;                                                                 \
     }
 
     void SyntacticAnalyzer::parse()
@@ -684,13 +684,13 @@ namespace lang
         st.push(Symbol::N(NonTerminal::START));
 
         std::uint32_t idx = 0;
-        constexpr std::uint32_t maxErrors = 20;
+        constexpr std::uint32_t maxErrors = 200;
 
         while (!st.empty()) {
             if (idx >= m_tokens.size()) {
                 m_problems.error(
                     "Syntax Error", "unexpected end of token stream", { m_tokens.empty() ? Token{ TokenType::END_OF_FILE, "", 0, 0, "" } : m_tokens.back() });
-                return;
+                break;
             }
 
             auto top = st.top();
@@ -761,7 +761,7 @@ namespace lang
                             "Syntax Error",
                             std::format(R"(no production for non-terminal <{}> with lookahead "{}")", to_string(A), lang::tokenTypeToCompString(token.type)),
                             { token });
-                        return;
+                        break;
                     }
 
                     m_problems.warn(
@@ -777,7 +777,8 @@ namespace lang
             }
         }
 
-        if (idx < m_tokens.size()) {
+    parse_done:
+        if (idx < m_tokens.size() && m_tokens[idx].type != TokenType::END_OF_FILE) {
             m_problems.warn(
                 "Syntax Error (recovered)", std::format("skipping {} extra tokens after parse completion", m_tokens.size() - idx), { m_tokens[idx] });
         }
@@ -788,14 +789,35 @@ namespace lang
         m_problems.displayProblems(m_lexicalAnalyzer);
 
         spdlog::info(
-            "{}: Parsed in \t\t {:.2f}ms \t [" CYAN "{} info(s)" RESET ", " YELLOW "{} warning(s)" RESET ", " RED "{} error(s)" RESET "]",
+            "{}: Parsed in \t\t\t {:.2f}ms \t [" CYAN "{} info(s)" RESET ", " YELLOW "{} warning(s)" RESET ", " RED "{} error(s)" RESET "]",
             m_currentFilePath,
             elapsed.count(),
             m_problems.getInfoCount(),
             m_problems.getWarningCount(),
             m_problems.getErrorCount());
 
-        WireASTParents(nullptr, m_astRoot.get());
+        // If the parse aborted early (e.g. too many errors), attempt to rescue the AST from
+        // whatever was built on the node stack so semantic analysis can still proceed.
+        if (!m_astRoot && !m_nodeStack.empty()) {
+            // Drain the stack looking for a Prog node, or try to assemble one
+            while (!m_nodeStack.empty()) {
+                auto top = m_nodeStack.top();
+                if (top && top->kind == ASTNode::Kind::Prog) {
+                    m_astRoot = top;
+                    break;
+                }
+                m_nodeStack.pop();
+            }
+            // If still no root, try to fire MakeProg manually from whatever is on the stack
+            if (!m_astRoot) {
+                executeAction(SemanticAction::MakeProg);
+                if (!m_astRoot && !m_nodeStack.empty())
+                    m_astRoot = m_nodeStack.top();
+            }
+        }
+
+        if (m_astRoot)
+            WireASTParents(nullptr, m_astRoot.get());
     }
 
     ASTNodePtr SyntacticAnalyzer::getAST() const
@@ -837,29 +859,41 @@ namespace lang
         switch (action) {
             case SemanticAction::MakeId:
                 {
-                    m_nodeStack.push(makeNode(ASTNode::Kind::Id, m_lastToken.lexeme));
+                    auto n = makeNode(ASTNode::Kind::Id, m_lastToken.lexeme);
+                    n->token = m_lastToken;
+                    m_nodeStack.push(n);
                     break;
                 }
             case SemanticAction::MakeSavedId:
                 {
-                    if (!m_savedLeadId.empty())
-                        m_nodeStack.push(makeNode(ASTNode::Kind::Id, m_savedLeadId));
+                    if (!m_savedLeadId.empty()) {
+                        auto n = makeNode(ASTNode::Kind::Id, m_savedLeadId);
+                        n->token = m_savedLeadToken;
+                        m_nodeStack.push(n);
+                    }
                     break;
                 }
             case SemanticAction::MakeType:
                 {
-                    m_nodeStack.push(makeNode(ASTNode::Kind::Type, m_lastToken.lexeme));
+                    auto n = makeNode(ASTNode::Kind::Type, m_lastToken.lexeme);
+                    n->token = m_lastToken;
+                    m_nodeStack.push(n);
                     break;
                 }
             case SemanticAction::MakeSavedType:
                 {
-                    if (!m_savedLeadId.empty())
-                        m_nodeStack.push(makeNode(ASTNode::Kind::Type, m_savedLeadId));
+                    if (!m_savedLeadId.empty()) {
+                        auto n = makeNode(ASTNode::Kind::Type, m_savedLeadId);
+                        n->token = m_savedLeadToken;
+                        m_nodeStack.push(n);
+                    }
                     break;
                 }
             case SemanticAction::MakeNum:
                 {
-                    m_nodeStack.push(makeNode(ASTNode::Kind::Num, m_lastToken.lexeme));
+                    auto n = makeNode(ASTNode::Kind::Num, m_lastToken.lexeme);
+                    n->token = m_lastToken;
+                    m_nodeStack.push(n);
                     break;
                 }
             case SemanticAction::MakeDim:
@@ -1132,6 +1166,7 @@ namespace lang
                     auto left = m_nodeStack.top();
                     m_nodeStack.pop();
                     auto node = makeNode(ASTNode::Kind::AddOp, op);
+                    node->token = m_lastToken;
                     node->children = { left, right };
                     m_nodeStack.push(node);
                     break;
@@ -1150,6 +1185,7 @@ namespace lang
                     auto left = m_nodeStack.top();
                     m_nodeStack.pop();
                     auto node = makeNode(ASTNode::Kind::MultOp, op);
+                    node->token = m_lastToken;
                     node->children = { left, right };
                     m_nodeStack.push(node);
                     break;
@@ -1168,6 +1204,7 @@ namespace lang
                     auto left = m_nodeStack.top();
                     m_nodeStack.pop();
                     auto node = makeNode(ASTNode::Kind::RelOp, op);
+                    node->token = m_lastToken;
                     node->children = { left, right };
                     m_nodeStack.push(node);
                     break;
@@ -1251,6 +1288,7 @@ namespace lang
             case SemanticAction::SaveLeadId:
                 {
                     m_savedLeadId = m_lastToken.lexeme;
+                    m_savedLeadToken = m_lastToken;
                     break;
                 }
             case SemanticAction::SaveVisibility:

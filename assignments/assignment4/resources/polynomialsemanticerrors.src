@@ -97,7 +97,7 @@ f(integer i) : void do end
 f(integer i) : void do end                                                // 8.2
 f(integer i, integer j) : integer do end                                  // 9.1
 
-f3(p1: integer[2][3]) : integer do end
+f3(integer p1[2][3]) : integer do end
 
 
 // ====== main ====== //
@@ -109,8 +109,8 @@ main
     QUADRATIC f2;
     integer counter;
     float counter;                                                        // 8.4
-    integer[2][3] i ;
-    integer[1][2][3] j;
+    integer i[2][3];
+    integer j[1][2][3];
   do 
     f1 = f1.build(2, 3.5);
     f2 = f2.build(-2.0, 1.0, 0.0);

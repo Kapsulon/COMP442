@@ -370,6 +370,7 @@ namespace lang
         Token m_lastToken{ TokenType::END_OF_FILE, "", 0, 0, "" };
         std::vector<std::string> m_savedOperators;
         std::string m_savedLeadId;
+        Token m_savedLeadToken{ TokenType::END_OF_FILE, "", 0, 0, "" };
         std::string m_currentVisibility;
 
         void executeAction(SemanticAction action);

@@ -18,7 +18,6 @@ namespace lang
     {
         if (!node)
             return;
-
         for (auto *child : node->table) deleteSymbolTree(child);
         delete node;
     }
@@ -45,6 +44,7 @@ namespace lang
 
         m_problems.clear();
         m_classTypeNames.clear();
+        m_ast = ast;
 
         deleteSymbolTree(m_symbolTable);
         m_symbolTable = nullptr;
@@ -63,15 +63,15 @@ namespace lang
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> elapsed = end - start;
 
-        m_problems.displayProblems(m_syntacticAnalyzer.getLexer());
-
         spdlog::info(
-            "{}: Generated Symbol Table in \t\t {:.2f}ms \t [" CYAN "{} info(s)" RESET ", " YELLOW "{} warning(s)" RESET ", " RED "{} error(s)" RESET "]",
+            "{}: Generated Symbol Table in \t {:.2f}ms \t [" CYAN "{} info(s)" RESET ", " YELLOW "{} warning(s)" RESET ", " RED "{} error(s)" RESET "]\n",
             m_syntacticAnalyzer.getCurrentFilePath(),
             elapsed.count(),
             m_problems.getInfoCount(),
             m_problems.getWarningCount(),
             m_problems.getErrorCount());
+
+        m_problems.displayProblems(m_syntacticAnalyzer.getLexer());
     }
 
     void SemanticAnalyzer::outputSymbolTable() const
@@ -90,12 +90,22 @@ namespace lang
         out << renderSymbolTable();
     }
 
-    SymbolTableNode *SemanticAnalyzer::makeSymbol(SymbolTableNode::Kind kind, const std::string &name, SymbolTableNode *parent) const
+    void SemanticAnalyzer::outputSemanticErrors() const
+    {
+        if (m_problems.getProblemCount() == 0)
+            return;
+
+        const std::string outputPath = std::string(m_syntacticAnalyzer.getCurrentFilePath()) + ".outsemanticerrors";
+        m_problems.outputProblems(m_syntacticAnalyzer.getLexer(), outputPath);
+    }
+
+    SymbolTableNode *SemanticAnalyzer::makeSymbol(SymbolTableNode::Kind kind, const std::string &name, SymbolTableNode *parent, Token token) const
     {
         auto *node = new SymbolTableNode();
         node->kind = kind;
         node->name = name;
         node->parent = parent;
+        node->token = std::move(token);
         return node;
     }
 
@@ -103,12 +113,10 @@ namespace lang
     {
         if (!globalTable)
             return nullptr;
-
         for (auto *child : globalTable->table) {
             if (child->kind == SymbolTableNode::Kind::Class && child->name == className)
                 return child;
         }
-
         return nullptr;
     }
 
@@ -117,23 +125,17 @@ namespace lang
     {
         if (!classNode)
             return nullptr;
-
         for (auto *entry : classNode->table) {
             if (entry->kind != SymbolTableNode::Kind::Function)
                 continue;
-
             if (entry->name != functionName)
                 continue;
-
             if (entry->signature.params != paramTypes)
                 continue;
-
             if (entry->signature.type != returnType)
                 continue;
-
             return entry;
         }
-
         return nullptr;
     }
 
@@ -147,7 +149,6 @@ namespace lang
     {
         if (typeName.empty())
             return typeName;
-
         const std::string key = lowercase(typeName);
         if (key == "integer")
             return "int";
@@ -155,10 +156,8 @@ namespace lang
             return "float";
         if (key == "void")
             return "void";
-
         if (m_classTypeNames.contains(key))
             return m_classTypeNames.at(key);
-
         return typeName;
     }
 
@@ -166,11 +165,8 @@ namespace lang
     {
         if (!varDecl || varDecl->kind != ASTNode::Kind::VarDecl || varDecl->children.size() < 3)
             return "";
-
         std::string type = normalizeType(varDecl->children[0]->lexeme);
-        auto dimList = varDecl->children[2];
-        for (auto &dim : dimList->children) type += std::format("[{}]", dim->lexeme);
-
+        for (auto &dim : varDecl->children[2]->children) type += std::format("[{}]", dim->lexeme);
         return type;
     }
 
@@ -179,9 +175,7 @@ namespace lang
         std::vector<std::string> params;
         if (!paramList || paramList->kind != ASTNode::Kind::ParamList)
             return params;
-
         for (const auto &param : paramList->children) params.emplace_back(varDeclType(param));
-
         return params;
     }
 
@@ -189,17 +183,14 @@ namespace lang
     {
         if (!inheritList || inheritList->kind != ASTNode::Kind::InheritList || inheritList->children.empty())
             return "none";
-
         std::string joined;
         for (const auto &child : inheritList->children) {
             if (child->kind != ASTNode::Kind::Id)
                 continue;
-
             if (!joined.empty())
                 joined += ", ";
             joined += normalizeType(child->lexeme);
         }
-
         return joined.empty() ? "none" : joined;
     }
 
@@ -215,7 +206,7 @@ namespace lang
             const std::string className = classNode->children[0]->lexeme;
             m_classTypeNames[lowercase(className)] = className;
 
-            auto *classSymbol = makeSymbol(SymbolTableNode::Kind::Class, className, globalTable);
+            auto *classSymbol = makeSymbol(SymbolTableNode::Kind::Class, className, globalTable, classNode->children[0]->token);
             globalTable->table.emplace_back(classSymbol);
 
             std::shared_ptr<const ASTNode> inheritList;
@@ -226,19 +217,16 @@ namespace lang
                 }
             }
 
-            auto *inheritSymbol = makeSymbol(SymbolTableNode::Kind::Inherit, joinInheritedTypes(inheritList), classSymbol);
-            classSymbol->table.emplace_back(inheritSymbol);
+            classSymbol->table.emplace_back(makeSymbol(SymbolTableNode::Kind::Inherit, joinInheritedTypes(inheritList), classSymbol));
 
             for (const auto &child : classNode->children) {
                 if (!child)
                     continue;
-
                 const SymbolTableNode::Visibility visibility = SymbolTableNode::FromString(child->lexeme);
-
                 switch (child->kind) {
                     case ASTNode::Kind::VarDecl:
                         {
-                            auto *dataSymbol = makeSymbol(SymbolTableNode::Kind::Data, child->children[1]->lexeme, classSymbol);
+                            auto *dataSymbol = makeSymbol(SymbolTableNode::Kind::Data, child->children[1]->lexeme, classSymbol, child->children[1]->token);
                             dataSymbol->signature.type = varDeclType(child);
                             dataSymbol->visibility = visibility;
                             classSymbol->table.emplace_back(dataSymbol);
@@ -246,7 +234,8 @@ namespace lang
                         }
                     case ASTNode::Kind::FuncDecl:
                         {
-                            auto *functionSymbol = makeSymbol(SymbolTableNode::Kind::Function, child->children[1]->lexeme, classSymbol);
+                            auto *functionSymbol =
+                                makeSymbol(SymbolTableNode::Kind::Function, child->children[1]->lexeme, classSymbol, child->children[1]->token);
                             functionSymbol->signature.type = normalizeType(child->children[0]->lexeme);
                             functionSymbol->signature.params = parameterTypes(child->children[2]);
                             functionSymbol->visibility = visibility;
@@ -264,26 +253,21 @@ namespace lang
     {
         if (!function)
             return;
-
         for (const auto *entry : function->table) {
             if (entry->kind == SymbolTableNode::Kind::Parameter || entry->kind == SymbolTableNode::Kind::Local)
                 return;
         }
-
         for (const auto &param : paramList->children) {
             if (param->kind != ASTNode::Kind::VarDecl)
                 continue;
-
-            auto *paramSymbol = makeSymbol(SymbolTableNode::Kind::Parameter, param->children[1]->lexeme, function);
+            auto *paramSymbol = makeSymbol(SymbolTableNode::Kind::Parameter, param->children[1]->lexeme, function, param->children[1]->token);
             paramSymbol->signature.type = varDeclType(param);
             function->table.emplace_back(paramSymbol);
         }
-
         for (const auto &statement : statBlock->children) {
             if (statement->kind != ASTNode::Kind::VarDecl)
                 continue;
-
-            auto *localSymbol = makeSymbol(SymbolTableNode::Kind::Local, statement->children[1]->lexeme, function);
+            auto *localSymbol = makeSymbol(SymbolTableNode::Kind::Local, statement->children[1]->lexeme, function, statement->children[1]->token);
             localSymbol->signature.type = varDeclType(statement);
             function->table.emplace_back(localSymbol);
         }
@@ -313,13 +297,11 @@ namespace lang
                 auto *classSymbol = findClassSymbol(globalTable, className);
                 auto *functionSymbol = findMemberFunctionSymbol(classSymbol, functionName, params, returnType);
 
-                if (!functionSymbol) {
-                    if (classSymbol) {
-                        functionSymbol = makeSymbol(SymbolTableNode::Kind::Function, functionName, classSymbol);
-                        functionSymbol->signature.type = returnType;
-                        functionSymbol->signature.params = params;
-                        classSymbol->table.emplace_back(functionSymbol);
-                    }
+                if (!functionSymbol && classSymbol) {
+                    functionSymbol = makeSymbol(SymbolTableNode::Kind::Function, functionName, classSymbol, nameNode->children[1]->token);
+                    functionSymbol->signature.type = returnType;
+                    functionSymbol->signature.params = params;
+                    classSymbol->table.emplace_back(functionSymbol);
                 }
 
                 populateFunctionTable(functionSymbol, paramList, statBlock);
@@ -327,7 +309,7 @@ namespace lang
             }
 
             if (nameNode->kind == ASTNode::Kind::Id) {
-                auto *functionSymbol = makeSymbol(SymbolTableNode::Kind::Function, nameNode->lexeme, globalTable);
+                auto *functionSymbol = makeSymbol(SymbolTableNode::Kind::Function, nameNode->lexeme, globalTable, nameNode->token);
                 functionSymbol->signature.type = returnType;
                 functionSymbol->signature.params = params;
                 globalTable->table.emplace_back(functionSymbol);
@@ -342,14 +324,13 @@ namespace lang
             return;
 
         auto *mainSymbol = makeSymbol(SymbolTableNode::Kind::Function, "main", globalTable);
-        mainSymbol->signature.type = "";
+        mainSymbol->signature.type = "void";
         globalTable->table.emplace_back(mainSymbol);
 
         for (const auto &statement : programBlock->children) {
             if (statement->kind != ASTNode::Kind::VarDecl)
                 continue;
-
-            auto *localSymbol = makeSymbol(SymbolTableNode::Kind::Local, statement->children[1]->lexeme, mainSymbol);
+            auto *localSymbol = makeSymbol(SymbolTableNode::Kind::Local, statement->children[1]->lexeme, mainSymbol, statement->children[1]->token);
             localSymbol->signature.type = varDeclType(statement);
             mainSymbol->table.emplace_back(localSymbol);
         }
@@ -362,13 +343,9 @@ namespace lang
 
         auto *globalTable = makeSymbol(SymbolTableNode::Kind::Table, "global", nullptr);
 
-        const auto &classList = ast->children[0];
-        const auto &funcDefList = ast->children[1];
-        const auto &programBlock = ast->children[2];
-
-        buildClassTables(globalTable, classList);
-        buildFunctionDefinitions(globalTable, funcDefList);
-        buildMainFunction(globalTable, programBlock);
+        buildClassTables(globalTable, ast->children[0]);
+        buildFunctionDefinitions(globalTable, ast->children[1]);
+        buildMainFunction(globalTable, ast->children[2]);
 
         return globalTable;
     }
@@ -377,25 +354,20 @@ namespace lang
     {
         if (!node)
             return "";
-
         if (node->kind == SymbolTableNode::Kind::Table)
             return node->name;
-
         if (node->kind == SymbolTableNode::Kind::Class && node->parent && node->parent->kind == SymbolTableNode::Kind::Table)
             return node->name;
-
         if (!node->parent || node->parent->kind == SymbolTableNode::Kind::Table)
             return std::format("::{}", node->name);
-
         return std::format("{}::{}", node->parent->name, node->name);
     }
 
     tabulate::Table::Row_t SemanticAnalyzer::renderRow(const SymbolTableNode *node) const
     {
-        tabulate::Table::Row_t firstRow;
-
-        firstRow.emplace_back(SymbolTableNode::ToString(node->kind));
-        firstRow.emplace_back(node->name);
+        tabulate::Table::Row_t row;
+        row.emplace_back(SymbolTableNode::ToString(node->kind));
+        row.emplace_back(node->name);
 
         if (node->kind == SymbolTableNode::Kind::Function) {
             std::string params;
@@ -404,31 +376,26 @@ namespace lang
                     params += ",";
                 params += param;
             }
-
-            const std::string signature = std::format("({}):{}", params, node->signature.type);
-            firstRow.emplace_back(signature);
+            row.emplace_back(std::format("({}):{}", params, node->signature.type));
         } else if (!node->signature.type.empty() || node->kind == SymbolTableNode::Kind::Inherit) {
-            firstRow.emplace_back(node->signature.type);
+            row.emplace_back(node->signature.type);
         }
 
-        if (node->visibility != SymbolTableNode::Visibility::None) {
-            firstRow.emplace_back(SymbolTableNode::ToString(node->visibility));
-        }
+        if (node->visibility != SymbolTableNode::Visibility::None)
+            row.emplace_back(SymbolTableNode::ToString(node->visibility));
 
-        return firstRow;
+        return row;
     }
 
     tabulate::Table SemanticAnalyzer::renderTable(const SymbolTableNode *node) const
     {
         tabulate::Table table;
-
         table.add_row({ std::format("table: {}", GetFullNamespace(node)) });
 
         tabulate::Table flatRows;
         auto flushFlatRows = [&table, &flatRows]() {
             if (flatRows.size() == 0)
                 return;
-
             table.add_row({ flatRows });
             flatRows = tabulate::Table();
         };
@@ -436,26 +403,20 @@ namespace lang
         for (const auto *child : node->table) {
             if (child->table.empty()) {
                 auto row = renderRow(child);
-                while (row.size() < 4) {
-                    row.emplace_back("");
-                }
+                while (row.size() < 4) row.emplace_back("");
                 flatRows.add_row(row);
                 continue;
             }
-
             flushFlatRows();
-
             tabulate::Table childRow;
             childRow.add_row(renderRow(child));
             table.add_row({ childRow });
-
             tabulate::Table nestedTable = renderTable(child);
             table.add_row({ nestedTable });
             table[table.size() - 1].format().hide_border_top();
         }
 
         flushFlatRows();
-
         return table;
     }
 
@@ -463,12 +424,7 @@ namespace lang
     {
         if (!m_symbolTable)
             return "";
-
-        tabulate::Table table = renderTable(m_symbolTable);
-        std::string rendered = table.str();
-
-        return rendered + "\n";
+        return renderTable(m_symbolTable).str() + "\n";
     }
 
-    void SemanticAnalyzer::semanticChecks() {}
 } // namespace lang
