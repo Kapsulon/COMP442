@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cctype>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -13,8 +14,7 @@
 #include "Problems/Problems.hpp"
 #include "SyntacticAnalyzer/SyntacticAnalyzer.hpp"
 #include "spdlog/spdlog.h"
-
-#define GENERATOR_ARGS SymbolTableNode *node, std::shared_ptr<const ASTNode> ast
+#include "tabulate/table.hpp"
 
 namespace lang
 {
@@ -32,28 +32,24 @@ namespace lang
 
         static std::string ToString(Kind kind)
         {
-            if (kind == Kind::Table)
-                return "table";
-
-            if (kind == Kind::Class)
-                return "class";
-
-            if (kind == Kind::Inherit)
-                return "inherit";
-
-            if (kind == Kind::Function)
-                return "function";
-
-            if (kind == Kind::Parameter)
-                return "param";
-
-            if (kind == Kind::Local)
-                return "local";
-
-            if (kind == Kind::Data)
-                return "data";
-
-            return "";
+            switch (kind) {
+                case Kind::Table:
+                    return "table";
+                case Kind::Class:
+                    return "class";
+                case Kind::Inherit:
+                    return "inherit";
+                case Kind::Function:
+                    return "function";
+                case Kind::Parameter:
+                    return "param";
+                case Kind::Local:
+                    return "local";
+                case Kind::Data:
+                    return "data";
+                default:
+                    return "";
+            }
         }
 
         enum class Visibility {
@@ -64,13 +60,14 @@ namespace lang
 
         static std::string ToString(Visibility visibility)
         {
-            if (visibility == Visibility::Public)
-                return "public";
-
-            if (visibility == Visibility::Private)
-                return "private";
-
-            return "";
+            switch (visibility) {
+                case Visibility::Public:
+                    return "public";
+                case Visibility::Private:
+                    return "private";
+                default:
+                    return "";
+            }
         }
 
         static Visibility FromString(const std::string &src)
@@ -113,89 +110,29 @@ namespace lang
         Problems m_problems;
         SyntacticAnalyzer m_syntacticAnalyzer;
         SymbolTableNode *m_symbolTable = nullptr;
+        std::unordered_map<std::string, std::string> m_classTypeNames;
 
-        // clang-format off
-        const std::unordered_map<ASTNode::Kind, std::function<void(SymbolTableNode *node, std ::shared_ptr<const ASTNode> ast)>> m_generators = {
-            {
-                ASTNode::Kind::Prog, [&](GENERATOR_ARGS) {
-                    node->kind = SymbolTableNode::Kind::Table;
-                    node->name = "global";
-                },
-            },
-            {
-                ASTNode::Kind::Class, [&](GENERATOR_ARGS) {
-                    node->kind = SymbolTableNode::Kind::Class;
-                    node->name = getExpectedChild(ast, 0, ASTNode::Kind::Id)->lexeme;
+        SymbolTableNode *generateSymbolTable(std::shared_ptr<const ASTNode> ast);
 
-                    if (std::none_of(ast->children.begin(), ast->children.end(), [](const std::shared_ptr<const ASTNode> &child) { return child->kind == ASTNode::Kind::InheritList; })) {
-                        node->table.emplace_back(new SymbolTableNode{
-                            .kind = SymbolTableNode::Kind::Inherit,
-                            .name = "none"
-                        });
-                    }
-                }
-            },
-            {
-                ASTNode::Kind::InheritList, [&](GENERATOR_ARGS) {
-                    node->kind = SymbolTableNode::Kind::Inherit;
+        SymbolTableNode *makeSymbol(SymbolTableNode::Kind kind, const std::string &name, SymbolTableNode *parent) const;
+        SymbolTableNode *findClassSymbol(SymbolTableNode *globalTable, const std::string &className) const;
+        SymbolTableNode *findMemberFunctionSymbol(
+            SymbolTableNode *classNode, const std::string &functionName, const std::vector<std::string> &paramTypes, const std::string &returnType) const;
 
-                    for (auto &child : ast->children) {
-                        if (child->kind == ASTNode::Kind::Id) {
-                            node->name += child->lexeme;
-                            if (child != ast->children.back())
-                                node->name += ", ";
-                        }
-                    }
-                }
-            },
-            {
-                ASTNode::Kind::FuncDecl, [&](GENERATOR_ARGS) {
-                    node->kind = SymbolTableNode::Kind::Function;
-                    node->visibility = SymbolTableNode::FromString(ast->lexeme);
-                    node->name = getExpectedChild(ast, 1, ASTNode::Kind::Id)->lexeme;
+        void buildClassTables(SymbolTableNode *globalTable, std::shared_ptr<const ASTNode> classList);
+        void buildFunctionDefinitions(SymbolTableNode *globalTable, std::shared_ptr<const ASTNode> funcDefList);
+        void buildMainFunction(SymbolTableNode *globalTable, std::shared_ptr<const ASTNode> programBlock);
+        void populateFunctionTable(SymbolTableNode *function, std::shared_ptr<const ASTNode> paramList, std::shared_ptr<const ASTNode> statBlock);
 
-                    node->signature.type = getExpectedChild(ast, 0, ASTNode::Kind::Type)->lexeme;
+        std::string normalizeType(std::string typeName) const;
+        std::string varDeclType(std::shared_ptr<const ASTNode> varDecl) const;
+        std::string joinInheritedTypes(std::shared_ptr<const ASTNode> inheritList) const;
+        std::vector<std::string> parameterTypes(std::shared_ptr<const ASTNode> paramList) const;
+        std::string lowercase(std::string src) const;
 
-                    for (auto param : getExpectedChild(ast, 2, ASTNode::Kind::ParamList)->children)
-                        node->signature.params.emplace_back(getExpectedChild(param, 0, ASTNode::Kind::Type)->lexeme);
-                }
-            },
-            {
-                ASTNode::Kind::VarDecl, [&](GENERATOR_ARGS) {
-                    switch (ast->parent->kind) {
-                        case ASTNode::Kind::Class:
-                            node->kind = SymbolTableNode::Kind::Data;
-                            break;
-                        case ASTNode::Kind::ParamList:
-                            node->kind = SymbolTableNode::Kind::Parameter;
-                            break;
-                        case ASTNode::Kind::StatBlock:
-                            node->kind = SymbolTableNode::Kind::Local;
-                            break;
-                        case ASTNode::Kind::ProgramBlock:
-                            node->kind = SymbolTableNode::Kind::Local;
-                            break;
-                        default:
-                            spdlog::warn("Unexpected parent kind {} for VarDecl", lang::to_string(ast->parent->kind));
-                            break;
-                    }
-
-                    node->visibility = SymbolTableNode::FromString(ast->lexeme);
-
-                    node->signature.type = getExpectedChild(ast, 0, ASTNode::Kind::Type)->lexeme;
-                    node->name = getExpectedChild(ast, 1, ASTNode::Kind::Id)->lexeme;
-
-                    for (auto dim : getExpectedChild(ast, 2, ASTNode::Kind::DimList)->children) {
-                        node->signature.type += std::format("[{}]", dim->lexeme);
-                    }
-                }
-            }
-        };
-        // clang-format on
-
-        SymbolTableNode *generateSymbolTable();
-        SymbolTableNode *applyGenerator(SymbolTableNode *parent, std::shared_ptr<const ASTNode> ast);
-        std::shared_ptr<const ASTNode> getExpectedChild(std::shared_ptr<const ASTNode> ast, int index, ASTNode::Kind kind);
+        void renderRow(SymbolTableNode *node, tabulate::Table *table) const;
+        tabulate::Table renderTable(SymbolTableNode *node) const;
+        std::string renderSymbolTable() const;
 
         static std::string GetFullNamespace(const SymbolTableNode *node);
 
