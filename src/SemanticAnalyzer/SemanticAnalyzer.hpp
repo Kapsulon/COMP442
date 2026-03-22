@@ -130,8 +130,8 @@ namespace lang
         std::vector<std::string> parameterTypes(std::shared_ptr<const ASTNode> paramList) const;
         std::string lowercase(std::string src) const;
 
-        void renderRow(SymbolTableNode *node, tabulate::Table *table) const;
-        tabulate::Table renderTable(SymbolTableNode *node) const;
+        tabulate::Table::Row_t renderRow(const SymbolTableNode *node) const;
+        tabulate::Table renderTable(const SymbolTableNode *node) const;
         std::string renderSymbolTable() const;
 
         static std::string GetFullNamespace(const SymbolTableNode *node);

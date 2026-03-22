@@ -4,6 +4,7 @@
 #include <format>
 #include <fstream>
 #include <iostream>
+#include <ranges>
 #include <vector>
 
 #include "tabulate/cell.hpp"
@@ -389,49 +390,71 @@ namespace lang
         return std::format("{}::{}", node->parent->name, node->name);
     }
 
-    void SemanticAnalyzer::renderRow(SymbolTableNode *node, tabulate::Table *table) const
+    tabulate::Table::Row_t SemanticAnalyzer::renderRow(const SymbolTableNode *node) const
     {
-        std::vector<std::string> firstRow;
+        tabulate::Table::Row_t firstRow;
 
-        if (node->kind == SymbolTableNode::Kind::Table) {
-            firstRow.emplace_back(std::format("table: {}", node->name));
-        } else {
-            firstRow.emplace_back(SymbolTableNode::ToString(node->kind));
-            firstRow.emplace_back(node->name);
+        firstRow.emplace_back(SymbolTableNode::ToString(node->kind));
+        firstRow.emplace_back(node->name);
 
-            if (node->kind == SymbolTableNode::Kind::Function) {
-                std::string params;
-                for (auto &param : node->signature.params) {
-                    params += param;
-                    if (&param != &node->signature.params.back()) {
-                        params += ", ";
-                    }
-                }
-                std::string signature = std::format("({}): {}", params, node->signature.type);
-                firstRow.emplace_back(signature);
-            } else if (!node->signature.type.empty()) {
-                firstRow.emplace_back(node->signature.type);
+        if (node->kind == SymbolTableNode::Kind::Function) {
+            std::string params;
+            for (const auto &param : node->signature.params) {
+                if (!params.empty())
+                    params += ",";
+                params += param;
             }
 
-            if (node->visibility != SymbolTableNode::Visibility::None) {
-                firstRow.emplace_back(SymbolTableNode::ToString(node->visibility));
-            }
+            const std::string signature = std::format("({}):{}", params, node->signature.type);
+            firstRow.emplace_back(signature);
+        } else if (!node->signature.type.empty() || node->kind == SymbolTableNode::Kind::Inherit) {
+            firstRow.emplace_back(node->signature.type);
         }
 
-        table->add_row(tabulate::Table::Row_t(firstRow.begin(), firstRow.end()));
+        if (node->visibility != SymbolTableNode::Visibility::None) {
+            firstRow.emplace_back(SymbolTableNode::ToString(node->visibility));
+        }
+
+        return firstRow;
     }
 
-    tabulate::Table SemanticAnalyzer::renderTable(SymbolTableNode *node) const
+    tabulate::Table SemanticAnalyzer::renderTable(const SymbolTableNode *node) const
     {
         tabulate::Table table;
 
-        table.add_row({ "table: global" });
+        table.add_row({ std::format("table: {}", GetFullNamespace(node)) });
 
-        for (auto *node : node->table) {
-            tabulate::Table inner;
-            renderRow(node, &inner);
-            table.add_row({ inner });
+        tabulate::Table flatRows;
+        auto flushFlatRows = [&table, &flatRows]() {
+            if (flatRows.size() == 0)
+                return;
+
+            table.add_row({ flatRows });
+            flatRows = tabulate::Table();
+        };
+
+        for (const auto *child : node->table) {
+            if (child->table.empty()) {
+                auto row = renderRow(child);
+                while (row.size() < 4) {
+                    row.emplace_back("");
+                }
+                flatRows.add_row(row);
+                continue;
+            }
+
+            flushFlatRows();
+
+            tabulate::Table childRow;
+            childRow.add_row(renderRow(child));
+            table.add_row({ childRow });
+
+            tabulate::Table nestedTable = renderTable(child);
+            table.add_row({ nestedTable });
+            table[table.size() - 1].format().hide_border_top();
         }
+
+        flushFlatRows();
 
         return table;
     }
@@ -442,8 +465,9 @@ namespace lang
             return "";
 
         tabulate::Table table = renderTable(m_symbolTable);
+        std::string rendered = table.str();
 
-        return table.str() + "\n";
+        return rendered + "\n";
     }
 
     void SemanticAnalyzer::semanticChecks() {}
