@@ -794,6 +794,8 @@ namespace lang
             m_problems.getInfoCount(),
             m_problems.getWarningCount(),
             m_problems.getErrorCount());
+
+        WireASTParents(nullptr, m_astRoot.get());
     }
 
     ASTNodePtr SyntacticAnalyzer::getAST() const

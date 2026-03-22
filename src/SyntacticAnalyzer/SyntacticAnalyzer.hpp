@@ -384,6 +384,14 @@ namespace lang
         FollowSet generateFollowSet();
         ParseTable generateParseTable();
 
+        static void WireASTParents(ASTNode *parent, ASTNode *child)
+        {
+            if (parent)
+                child->parent = parent;
+
+            for (const auto &grandChild : child->children) WireASTParents(child, grandChild.get());
+        }
+
         static const Grammar grammar;
         const FirstSet m_firstSet;
         const FollowSet m_followSet;

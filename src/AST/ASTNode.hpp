@@ -44,6 +44,7 @@ namespace lang
         Kind kind;
         std::string lexeme;
         std::vector<std::shared_ptr<ASTNode>> children;
+        ASTNode *parent = nullptr;
     };
 
     using ASTNodePtr = std::shared_ptr<ASTNode>;
