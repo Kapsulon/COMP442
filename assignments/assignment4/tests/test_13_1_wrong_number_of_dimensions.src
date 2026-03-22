@@ -1,0 +1,11 @@
+// Test 13.1: use of array with wrong number of dimensions
+// 'row' is a 1D array. Indexing it twice (row[0][1]) exceeds its dimensions.
+
+main
+  local
+    integer row[5];
+    integer x;
+  do
+    row[2] = 10;
+    x = row[2][1];
+  end

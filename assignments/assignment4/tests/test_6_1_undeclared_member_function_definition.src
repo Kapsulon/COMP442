@@ -1,0 +1,20 @@
+// Test 6.1: definition provided for undeclared member function
+// Shape declares only area(). compute() is defined but never declared.
+
+class Shape {
+    public area(float base, float height) : float;
+};
+
+Shape::area(float base, float height) : float
+  do
+    return (base * height);
+  end
+
+Shape::compute(float x) : float
+  do
+    return (x);
+  end
+
+main
+  do
+  end

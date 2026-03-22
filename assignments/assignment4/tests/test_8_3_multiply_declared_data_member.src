@@ -1,0 +1,18 @@
+// Test 8.3: multiply declared data member in class
+// Rectangle declares width twice.
+
+class Rectangle {
+    public float width;
+    public float height;
+    public float width;
+    public area() : float;
+};
+
+Rectangle::area() : float
+  do
+    return (width * height);
+  end
+
+main
+  do
+  end

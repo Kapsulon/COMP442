@@ -1,0 +1,10 @@
+// Test 15.1: "." operator used on non-class type
+// 'count' is an integer; accessing .value on it is invalid.
+
+main
+  local
+    integer count;
+  do
+    count = 5;
+    count.value = 1;
+  end

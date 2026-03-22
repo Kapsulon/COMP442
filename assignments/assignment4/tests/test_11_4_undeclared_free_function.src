@@ -1,0 +1,9 @@
+// Test 11.4: undeclared/undefined free function
+// compute() is called in main but is never defined anywhere.
+
+main
+  local
+    integer result;
+  do
+    result = compute(5);
+  end

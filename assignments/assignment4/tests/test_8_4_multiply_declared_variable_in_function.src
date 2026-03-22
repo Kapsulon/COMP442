@@ -1,0 +1,11 @@
+// Test 8.4: multiply declared variable in function
+// main declares counter twice in its local block.
+
+main
+  local
+    integer counter;
+    float ratio;
+    integer counter;
+  do
+    counter = 0;
+  end

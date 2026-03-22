@@ -1,0 +1,10 @@
+// Test 10.2: type error in assignment statement
+// Assigning a float literal to an integer variable.
+
+main
+  local
+    integer count;
+    float ratio;
+  do
+    count = 3.14;
+  end

@@ -1,0 +1,18 @@
+// Test 14.1: circular class dependency
+// A inherits B, B inherits C, C inherits A — forms a cycle.
+
+class A inherits B {
+    public integer x;
+};
+
+class B inherits C {
+    public integer y;
+};
+
+class C inherits A {
+    public integer z;
+};
+
+main
+  do
+  end

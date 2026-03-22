@@ -1,0 +1,21 @@
+// Test 11.2: undeclared member variable
+// Point has no 'z' data member, but it is accessed via dot operator.
+
+class Point {
+    public float x;
+    public float y;
+    public move(float dx, float dy) : void;
+};
+
+Point::move(float dx, float dy) : void
+  do
+    x = x + dx;
+    y = y + dy;
+  end
+
+main
+  local
+    Point p;
+  do
+    p.z = 1.0;
+  end

@@ -1,0 +1,20 @@
+// Test 12.2: function call with wrong type of parameters
+// scale(float) expects a float; called with a Vec2 object.
+
+class Vec2 {
+    public float x;
+    public float y;
+};
+
+scale(float factor) : float
+  do
+    return (factor);
+  end
+
+main
+  local
+    Vec2 v;
+    float result;
+  do
+    result = scale(v);
+  end

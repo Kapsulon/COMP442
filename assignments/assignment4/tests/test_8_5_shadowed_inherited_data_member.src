@@ -1,0 +1,20 @@
+// Test 8.5: shadowed inherited data member
+// Child re-declares 'value' which already exists in Parent.
+
+class Parent {
+    public integer value;
+};
+
+class Child inherits Parent {
+    public integer value;
+    public get() : integer;
+};
+
+Child::get() : integer
+  do
+    return (value);
+  end
+
+main
+  do
+  end

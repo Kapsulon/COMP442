@@ -1,0 +1,10 @@
+// Test 11.5: undeclared class used as variable type
+// 'Engine' is not declared anywhere, but used as the type of 'e'.
+
+main
+  local
+    Engine e;
+    integer x;
+  do
+    x = 1;
+  end

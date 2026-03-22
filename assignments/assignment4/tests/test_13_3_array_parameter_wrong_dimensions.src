@@ -1,0 +1,14 @@
+// Test 13.3: array parameter using wrong number of dimensions
+// fill() expects a 1D array parameter, but a scalar integer is passed.
+
+fill(integer arr[], integer size) : void
+  do
+  end
+
+main
+  local
+    integer n;
+  do
+    n = 5;
+    fill(n, 1);
+  end

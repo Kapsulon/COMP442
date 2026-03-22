@@ -1,0 +1,16 @@
+// Test 8.2: multiply declared free function
+// double(integer n) is defined twice with the exact same signature.
+
+double(integer n) : integer
+  do
+    return (n);
+  end
+
+double(integer n) : integer
+  do
+    return (n);
+  end
+
+main
+  do
+  end

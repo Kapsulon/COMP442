@@ -1,0 +1,22 @@
+// Test 9.3: overridden member function (warning)
+// Dog overrides speak() from Animal with the same signature.
+
+class Animal {
+    public speak() : void;
+};
+
+class Dog inherits Animal {
+    public speak() : void;
+};
+
+Animal::speak() : void
+  do
+  end
+
+Dog::speak() : void
+  do
+  end
+
+main
+  do
+  end

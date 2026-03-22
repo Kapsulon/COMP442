@@ -1,0 +1,18 @@
+// Test 8.6: local variable in member function shadows a data member
+// Box has data member 'size'. resize() declares a local named 'size'.
+
+class Box {
+    public integer size;
+    public resize(integer s) : void;
+};
+
+Box::resize(integer s) : void
+  local
+    integer size;
+  do
+    size = s;
+  end
+
+main
+  do
+  end

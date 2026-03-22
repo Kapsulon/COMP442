@@ -1,0 +1,19 @@
+// Test 9.2: overloaded member function (warning)
+// Printer declares print() twice with different parameter types.
+
+class Printer {
+    public print(integer n) : void;
+    public print(float n) : void;
+};
+
+Printer::print(integer n) : void
+  do
+  end
+
+Printer::print(float n) : void
+  do
+  end
+
+main
+  do
+  end

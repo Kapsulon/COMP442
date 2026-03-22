@@ -1,0 +1,10 @@
+// Test 11.1: undeclared local variable
+// 'total' is used in main but never declared.
+
+main
+  local
+    integer x;
+  do
+    x = 1;
+    total = x + 1;
+  end

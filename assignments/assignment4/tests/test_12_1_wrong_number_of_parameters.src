@@ -1,0 +1,14 @@
+// Test 12.1: function call with wrong number of parameters
+// add(integer, integer) expects 2 arguments; called with 3.
+
+add(integer a, integer b) : integer
+  do
+    return (a + b);
+  end
+
+main
+  local
+    integer result;
+  do
+    result = add(1, 2, 3);
+  end

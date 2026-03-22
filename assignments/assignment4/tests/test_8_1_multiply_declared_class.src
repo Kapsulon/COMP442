@@ -1,0 +1,14 @@
+// Test 8.1: multiply declared class
+// Counter is declared twice in global scope.
+
+class Counter {
+    public integer value;
+};
+
+class Counter {
+    public float rate;
+};
+
+main
+  do
+  end

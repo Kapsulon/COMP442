@@ -1,0 +1,13 @@
+// Test 10.1: type error in expression
+// Adding an integer and a float is a type mismatch.
+
+main
+  local
+    integer x;
+    float y;
+    float result;
+  do
+    x = 3;
+    y = 1.5;
+    result = x + y;
+  end

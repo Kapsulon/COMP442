@@ -1,0 +1,11 @@
+// Test 13.2: array index is not an integer
+// 'data' is indexed with a float expression.
+
+main
+  local
+    integer data[5];
+    float idx;
+  do
+    idx = 2.5;
+    data[idx] = 10;
+  end

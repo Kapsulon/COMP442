@@ -1,0 +1,16 @@
+// Test 6.2: member function declared but never defined
+// Shape declares both area() and perimeter(), but only area() has a definition.
+
+class Shape {
+    public area(float base, float height) : float;
+    public perimeter(float a, float b, float c) : float;
+};
+
+Shape::area(float base, float height) : float
+  do
+    return (base * height);
+  end
+
+main
+  do
+  end

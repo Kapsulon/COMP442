@@ -1,0 +1,27 @@
+// Test 11.3: undeclared member function
+// Stack has no 'peek' member function, but it is called via dot operator.
+
+class Stack {
+    public integer top;
+    public push(integer val) : void;
+    public pop() : integer;
+};
+
+Stack::push(integer val) : void
+  do
+    top = val;
+  end
+
+Stack::pop() : integer
+  do
+    return (top);
+  end
+
+main
+  local
+    Stack s;
+    integer val;
+  do
+    s.push(10);
+    val = s.peek();
+  end

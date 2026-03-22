@@ -1,0 +1,11 @@
+// Test 10.3: type error in return statement
+// getCount() declares return type integer but returns a float.
+
+getCount() : integer
+  do
+    return (2.5);
+  end
+
+main
+  do
+  end

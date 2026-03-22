@@ -1,0 +1,14 @@
+// Test 9.1: overloaded free function (warning)
+// print() is defined twice with different parameter types.
+
+print(integer n) : void
+  do
+  end
+
+print(float n) : void
+  do
+  end
+
+main
+  do
+  end
