@@ -144,9 +144,9 @@ namespace lang
         void checkUndeclaredClassTypes(SymbolTableNode *globalTable);
 
         struct ScopeContext {
-            SymbolTableNode *globalTable = nullptr;
-            SymbolTableNode *classNode = nullptr;
-            SymbolTableNode *functionNode = nullptr;
+            SymbolTableNode *global_table = nullptr;
+            SymbolTableNode *class_node = nullptr;
+            SymbolTableNode *function_node = nullptr;
         };
 
         void checkAllFunctionBodies(SymbolTableNode *globalTable);

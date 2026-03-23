@@ -130,21 +130,21 @@ namespace lang
     {
         const std::string key = lowercase(name);
 
-        if (ctx.functionNode) {
-            for (auto *entry : ctx.functionNode->table) {
+        if (ctx.function_node) {
+            for (auto *entry : ctx.function_node->table) {
                 if ((entry->kind == SymbolTableNode::Kind::Local || entry->kind == SymbolTableNode::Kind::Parameter) && lowercase(entry->name) == key)
                     return entry;
             }
         }
 
-        if (ctx.classNode) {
-            auto *found = lookupInClass(ctx.classNode, name);
+        if (ctx.class_node) {
+            auto *found = lookupInClass(ctx.class_node, name);
             if (found)
                 return found;
         }
 
-        if (ctx.globalTable) {
-            for (auto *entry : ctx.globalTable->table) {
+        if (ctx.global_table) {
+            for (auto *entry : ctx.global_table->table) {
                 if (entry->kind == SymbolTableNode::Kind::Function && lowercase(entry->name) == key)
                     return entry;
             }
@@ -195,16 +195,16 @@ namespace lang
                 const std::vector<std::string> params = parameterTypes(paramListNode);
 
                 ScopeContext ctx;
-                ctx.globalTable = globalTable;
+                ctx.global_table = globalTable;
 
                 if (nameNode->kind == ASTNode::Kind::MemberAccess && nameNode->children.size() == 2) {
                     const std::string className = normalizeType(nameNode->children[0]->lexeme);
                     const std::string funcName = nameNode->children[1]->lexeme;
-                    ctx.classNode = findClassByName(className);
-                    if (ctx.classNode)
-                        ctx.functionNode = findMemberFunctionSymbol(ctx.classNode, funcName, params, retType);
+                    ctx.class_node = findClassByName(className);
+                    if (ctx.class_node)
+                        ctx.function_node = findMemberFunctionSymbol(ctx.class_node, funcName, params, retType);
                 } else if (nameNode->kind == ASTNode::Kind::Id) {
-                    ctx.functionNode = findFreeFunctionByNameAndArgs(nameNode->lexeme, params);
+                    ctx.function_node = findFreeFunctionByNameAndArgs(nameNode->lexeme, params);
                 }
 
                 checkStatBlock(statBlockNode, ctx);
@@ -213,10 +213,10 @@ namespace lang
 
         {
             ScopeContext ctx;
-            ctx.globalTable = globalTable;
+            ctx.global_table = globalTable;
             for (auto *entry : globalTable->table) {
                 if (entry->kind == SymbolTableNode::Kind::Function && lowercase(entry->name) == "main") {
-                    ctx.functionNode = entry;
+                    ctx.function_node = entry;
                     break;
                 }
             }
@@ -296,11 +296,11 @@ namespace lang
 
         const std::string retType = inferType(node->children[0], ctx);
 
-        if (ctx.functionNode && !ctx.functionNode->signature.type.empty() && ctx.functionNode->signature.type != "void" && !retType.empty()) {
-            if (!TypesCompatible(retType, ctx.functionNode->signature.type))
+        if (ctx.function_node && !ctx.function_node->signature.type.empty() && ctx.function_node->signature.type != "void" && !retType.empty()) {
+            if (!TypesCompatible(retType, ctx.function_node->signature.type))
                 m_problems.error(
                     "10.3 type error in return statement",
-                    std::format("returning '{}' from function declared to return '{}'", retType, ctx.functionNode->signature.type),
+                    std::format("returning '{}' from function declared to return '{}'", retType, ctx.function_node->signature.type),
                     { node->children[0]->token.line > 0 ? node->children[0]->token : node->token });
         }
     }
@@ -627,8 +627,8 @@ namespace lang
         for (const auto &arg : paramListNode->children) argTypes.push_back(inferType(arg, ctx));
 
         SymbolTableNode *funcSym = nullptr;
-        if (ctx.classNode) {
-            for (auto *entry : ctx.classNode->table) {
+        if (ctx.class_node) {
+            for (auto *entry : ctx.class_node->table) {
                 if (entry->kind != SymbolTableNode::Kind::Function || lowercase(entry->name) != lowercase(funcName))
                     continue;
                 if (entry->signature.params.size() == argTypes.size()) {
