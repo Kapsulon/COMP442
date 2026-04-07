@@ -103,6 +103,9 @@ namespace lang
         void outputSymbolTable() const;
         void outputSemanticErrors() const;
 
+        std::shared_ptr<const ASTNode> getAST() const { return m_ast; }
+        const SymbolTableNode *getSymbolTable() const { return m_symbolTable; }
+
     private:
         Problems m_problems;
         SyntacticAnalyzer m_syntacticAnalyzer;

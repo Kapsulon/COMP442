@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <vector>
 #include "Problems/Problems.hpp"
+#include "SemanticAnalyzer/SemanticAnalyzer.hpp"
 
 class Compiler
 {
