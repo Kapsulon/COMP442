@@ -53,6 +53,7 @@ namespace lang
         const SymbolTableNode *findMethod(const SymbolTableNode *cls, const std::string &name) const;
         int memberOffset(const SymbolTableNode *cls, const std::string &name) const;
         std::string getVarType(const std::string &name) const;
+        std::string getExprType(std::shared_ptr<const ASTNode> node) const;
 
         FrameInfo computeFrameInfo(const SymbolTableNode *funcNode, bool isMember = false) const;
         std::unordered_map<std::string, std::string> allocateGlobals(const SymbolTableNode *mainNode);

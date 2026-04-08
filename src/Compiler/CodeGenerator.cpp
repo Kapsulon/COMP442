@@ -245,6 +245,39 @@ namespace lang
         return "";
     }
 
+    std::string CodeGenerator::getExprType(std::shared_ptr<const ASTNode> node) const
+    {
+        if (!node) return "";
+        switch (node->kind) {
+            case ASTNode::Kind::Id:
+                return getVarType(node->lexeme);
+            case ASTNode::Kind::IndexedVar: {
+                if (node->children.empty()) return "";
+                std::string base = getExprType(node->children[0]);
+                size_t pos = base.find('[');
+                if (pos == std::string::npos) return base;
+                size_t end = base.find(']', pos);
+                if (end == std::string::npos) return base;
+                return base.substr(0, pos) + base.substr(end + 1);
+            }
+            case ASTNode::Kind::MemberAccess: {
+                if (node->children.size() < 2) return "";
+                std::string objType = getExprType(node->children[0]);
+                size_t br = objType.find('[');
+                std::string baseName = (br != std::string::npos) ? objType.substr(0, br) : objType;
+                const SymbolTableNode *cls = findClass(baseName);
+                if (!cls) return "";
+                for (auto *entry : cls->table) {
+                    if (entry->kind == SymbolTableNode::Kind::Data && entry->name == node->children[1]->lexeme)
+                        return entry->signature.type;
+                }
+                return "";
+            }
+            default:
+                return "";
+        }
+    }
+
     FrameInfo CodeGenerator::computeFrameInfo(const SymbolTableNode *funcNode, bool isMember) const
     {
         FrameInfo fi;
@@ -1087,9 +1120,13 @@ namespace lang
             objAddrReg = addrOfVar(objNode->lexeme);
         } else {
             objAddrReg = generateLValue(objNode);
+            objType = getExprType(objNode);
         }
 
-        const SymbolTableNode *cls = findClass(objType);
+        // Strip array dimensions to get the base class name
+        size_t br = objType.find('[');
+        std::string baseObjType = (br != std::string::npos) ? objType.substr(0, br) : objType;
+        const SymbolTableNode *cls = findClass(baseObjType);
         int offset = cls ? memberOffset(cls, memberNode->lexeme) : 0;
 
         if (offset == 0)
