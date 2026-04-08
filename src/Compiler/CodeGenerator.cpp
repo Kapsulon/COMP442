@@ -1,6 +1,7 @@
 #include "CodeGenerator.hpp"
 
 #include <cassert>
+#include <cmath>
 #include <format>
 #include <sstream>
 #include <stdexcept>
@@ -525,9 +526,16 @@ namespace lang
         if (!node || node->children.size() < 2)
             return;
 
-        int rhsReg = generateExpr(node->children[1]);
-
         auto &lhs = node->children[0];
+        auto &rhs = node->children[1];
+
+        int rhsReg = generateExpr(rhs);
+
+        // If the LHS is a float variable but the RHS is an integer expression, scale up
+        if (isFloatExpr(lhs) && !isFloatExpr(rhs)) {
+            emit(std::format("         muli   r{},r{},100   % promote int rhs to float x100", rhsReg, rhsReg));
+        }
+
         if (lhs->kind == ASTNode::Kind::Id) {
             storeVar(lhs->lexeme, rhsReg);
         } else {
@@ -584,13 +592,18 @@ namespace lang
         if (!node || node->children.empty())
             return;
 
+        bool isFloat = isFloatExpr(node->children[0]);
         int valReg = generateExpr(node->children[0]);
         if (valReg != 1) {
-            emit(std::format("         add    r1,r{},r0   % move to r1 for putint", valReg));
+            emit(std::format("         add    r1,r{},r0   % move to r1 for put", valReg));
             freeReg(valReg);
         }
 
-        emit("         jl     r15,putint   % write integer");
+        if (isFloat) {
+            emit("         jl     r15,putfloat   % write float");
+        } else {
+            emit("         jl     r15,putint   % write integer");
+        }
         if (valReg == 1)
             freeReg(1);
 
@@ -606,6 +619,13 @@ namespace lang
         emit("         jl     r15,getint   % read integer → r1");
 
         auto &var = node->children[0];
+
+        // If the target variable is float, scale the integer input by 100
+        bool targetIsFloat = isFloatExpr(var);
+        if (targetIsFloat) {
+            emit("         muli   r1,r1,100   % scale int input to float x100");
+        }
+
         if (var->kind == ASTNode::Kind::Id) {
             auto fit = m_currentFrame.offsets.find(var->lexeme);
             if (fit != m_currentFrame.offsets.end()) {
@@ -632,6 +652,12 @@ namespace lang
             emit("         add    r13,r0,r0   % return void");
         } else {
             int valReg = generateExpr(node->children[0]);
+            // If the function returns float but the expression is integer, scale up
+            bool funcReturnsFloat = m_currentFuncNode && m_currentFuncNode->signature.type == "float";
+            bool exprIsFloat = isFloatExpr(node->children[0]);
+            if (funcReturnsFloat && !exprIsFloat) {
+                emit(std::format("         muli   r{},r{},100   % promote int return to float x100", valReg, valReg));
+            }
             emit(std::format("         add    r13,r{},r0   % set return value", valReg));
             freeReg(valReg);
         }
@@ -684,8 +710,21 @@ namespace lang
             return r;
         }
 
+        bool leftIsFloat  = isFloatExpr(node->children[0]);
+        bool rightIsFloat = isFloatExpr(node->children[1]);
+        bool floatCtx = leftIsFloat || rightIsFloat;
+
         int lReg = generateExpr(node->children[0]);
         int rReg = generateExpr(node->children[1]);
+
+        // Promote integer operand to fixed-point if in float context
+        if (floatCtx && !leftIsFloat) {
+            emit(std::format("         muli   r{},r{},100   % promote int lhs to float x100", lReg, lReg));
+        }
+        if (floatCtx && !rightIsFloat) {
+            emit(std::format("         muli   r{},r{},100   % promote int rhs to float x100", rReg, rReg));
+        }
+
         int res = allocReg();
 
         const std::string &op = node->lexeme;
@@ -696,8 +735,19 @@ namespace lang
         } else if (op == "or") {
             emit(std::format("         or     r{},r{},r{}", res, lReg, rReg));
         } else if (op == "*") {
+            if (floatCtx) {
+                // Before multiply, scale lhs up so result stays in x100 range
+                emit(std::format("         muli   r{},r{},100   % pre-scale for float mul", lReg, lReg));
+            }
             emit(std::format("         mul    r{},r{},r{}", res, lReg, rReg));
+            if (floatCtx) {
+                emit(std::format("         divi   r{},r{},100   % post-scale for float mul", res, res));
+            }
         } else if (op == "/") {
+            if (floatCtx) {
+                // Scale lhs up before dividing so we preserve fraction
+                emit(std::format("         muli   r{},r{},100   % pre-scale for float div", lReg, lReg));
+            }
             emit(std::format("         div    r{},r{},r{}", res, lReg, rReg));
         } else if (op == "and") {
             emit(std::format("         and    r{},r{},r{}", res, lReg, rReg));
@@ -717,8 +767,21 @@ namespace lang
             emit(std::format("         add    r{},r0,r0", r));
             return r;
         }
+
+        bool leftIsFloat  = isFloatExpr(node->children[0]);
+        bool rightIsFloat = isFloatExpr(node->children[1]);
+        bool floatCtx = leftIsFloat || rightIsFloat;
+
         int lReg = generateExpr(node->children[0]);
         int rReg = generateExpr(node->children[1]);
+
+        if (floatCtx && !leftIsFloat) {
+            emit(std::format("         muli   r{},r{},100   % promote int lhs for float relop", lReg, lReg));
+        }
+        if (floatCtx && !rightIsFloat) {
+            emit(std::format("         muli   r{},r{},100   % promote int rhs for float relop", rReg, rReg));
+        }
+
         int res = allocReg();
 
         const std::string &op = node->lexeme;
@@ -769,8 +832,8 @@ namespace lang
         int r = allocReg();
         const std::string &lex = node->lexeme;
         if (lex.find('.') != std::string::npos) {
-            int val = static_cast<int>(std::stof(lex));
-            emit(std::format("         addi   r{},r0,{}   % float literal (truncated)", r, val));
+            long scaled = std::lround(std::stod(lex) * 100.0);
+            emit(std::format("         addi   r{},r0,{}   % float literal {} scaled x100", r, scaled, lex));
         } else {
             emit(std::format("         addi   r{},r0,{}   % integer literal", r, lex));
         }
@@ -839,6 +902,89 @@ namespace lang
         emit(std::format("         lw     r{},0(r{})   % load member", valReg, addrReg));
         freeReg(addrReg);
         return valReg;
+    }
+
+    bool CodeGenerator::isFloatExpr(std::shared_ptr<const ASTNode> node) const
+    {
+        if (!node)
+            return false;
+        switch (node->kind) {
+            case ASTNode::Kind::Num:
+                return node->lexeme.find('.') != std::string::npos;
+            case ASTNode::Kind::Id:
+                return getVarType(node->lexeme) == "float";
+            case ASTNode::Kind::AddOp:
+            case ASTNode::Kind::MultOp:
+                if (node->children.size() < 2)
+                    return false;
+                return isFloatExpr(node->children[0]) || isFloatExpr(node->children[1]);
+            case ASTNode::Kind::SignExpr:
+                if (node->children.empty())
+                    return false;
+                return isFloatExpr(node->children[0]);
+            case ASTNode::Kind::NotExpr:
+            case ASTNode::Kind::RelOp:
+                return false;
+            case ASTNode::Kind::FuncCall:
+                {
+                    if (node->children.empty())
+                        return false;
+                    auto &calleeNode = node->children[0];
+                    if (calleeNode->kind == ASTNode::Kind::Id) {
+                        const SymbolTableNode *fn = findFreeFunction(calleeNode->lexeme);
+                        return fn && fn->signature.type == "float";
+                    } else if (calleeNode->kind == ASTNode::Kind::MemberAccess && calleeNode->children.size() >= 2) {
+                        std::string objType = getVarType(calleeNode->children[0]->lexeme);
+                        const SymbolTableNode *cls = findClass(objType);
+                        const SymbolTableNode *method = cls ? findMethod(cls, calleeNode->children[1]->lexeme) : nullptr;
+                        return method && method->signature.type == "float";
+                    }
+                    return false;
+                }
+            case ASTNode::Kind::MemberAccess:
+                {
+                    if (node->children.size() < 2)
+                        return false;
+                    std::string objType = getVarType(node->children[0]->lexeme);
+                    const SymbolTableNode *cls = findClass(objType);
+                    if (!cls)
+                        return false;
+                    const std::string &memberName = node->children[1]->lexeme;
+                    for (auto *entry : cls->table) {
+                        if (entry->kind == SymbolTableNode::Kind::Data && entry->name == memberName) {
+                            std::string t = entry->signature.type;
+                            size_t b = t.find('[');
+                            if (b != std::string::npos)
+                                t = t.substr(0, b);
+                            return t == "float";
+                        }
+                    }
+                    return false;
+                }
+            case ASTNode::Kind::IndexedVar:
+                {
+                    if (node->children.empty())
+                        return false;
+                    auto &baseNode = node->children[0];
+                    if (baseNode->kind != ASTNode::Kind::Id)
+                        return false;
+                    std::string varType = getVarType(baseNode->lexeme);
+                    // Strip one array dimension
+                    size_t bracket = varType.find('[');
+                    if (bracket == std::string::npos)
+                        return false;
+                    size_t close = varType.find(']', bracket);
+                    if (close == std::string::npos)
+                        return false;
+                    std::string elemType = varType.substr(0, bracket) + varType.substr(close + 1);
+                    // Get base type
+                    size_t b2 = elemType.find('[');
+                    std::string baseType = (b2 != std::string::npos) ? elemType.substr(0, b2) : elemType;
+                    return baseType == "float";
+                }
+            default:
+                return false;
+        }
     }
 
     int CodeGenerator::generateLValue(std::shared_ptr<const ASTNode> node)
@@ -977,6 +1123,10 @@ namespace lang
         for (size_t i = 0; i < args.size(); i++) {
             bool passAsPointer = (i < params.size()) && isPointerType(params[i]->signature.type);
             int reg = passAsPointer ? generateLValue(args[i]) : generateExpr(args[i]);
+            // If the parameter expects float but the argument is an integer expression, scale up
+            if (i < params.size() && params[i]->signature.type == "float" && !isFloatExpr(args[i])) {
+                emit(std::format("         muli   r{},r{},100   % promote int arg to float x100 for param '{}'", reg, reg, params[i]->name));
+            }
             argRegs.push_back(reg);
         }
 
@@ -1079,6 +1229,60 @@ getint4  addi   r2,r0,63         % c := '?'
 getint5  bz     r3,getint6       % branch if s = 0 (positive)
          sub    r1,r0,r1         % n := -n
 getint6  jr     r15              % return
+
+         align
+% Write a fixed-point float (scaled x100) to output as D.FF
+% Entry:  r1 = value * 100 (signed)
+% Uses:   r1, r2, r3, r4, r5.
+% Link:   r15.
+% Does NOT print newline (caller does it).
+putfloat add    r2,r0,r0         % sign flag := 0
+         cge    r3,r1,r0
+         bnz    r3,pflt1         % branch if value >= 0
+         addi   r2,r0,1          % sign flag := 1
+         sub    r1,r0,r1         % value := -value
+pflt1    add    r3,r0,r0         % frac := value mod 100
+         modi   r3,r1,100
+         divi   r1,r1,100        % int_part := value / 100
+
+% Build fractional digits (always 2) into buffer, low digit first
+         addi   r4,r0,endbuf     % p := endbuf
+         modi   r5,r3,10         % low digit of frac
+         addi   r5,r5,48
+         subi   r4,r4,1
+         sb     0(r4),r5
+         divi   r3,r3,10
+         modi   r5,r3,10         % high digit of frac
+         addi   r5,r5,48
+         subi   r4,r4,1
+         sb     0(r4),r5
+
+% Store the decimal point
+         addi   r5,r0,46         % '.'
+         subi   r4,r4,1
+         sb     0(r4),r5
+
+% Build integer part digits (at least one digit)
+pflt2    modi   r5,r1,10
+         addi   r5,r5,48
+         subi   r4,r4,1
+         sb     0(r4),r5
+         divi   r1,r1,10
+         bnz    r1,pflt2         % loop while int_part != 0
+
+% Prepend minus sign if needed
+         bz     r2,pflt3
+         addi   r5,r0,45         % '-'
+         subi   r4,r4,1
+         sb     0(r4),r5
+
+% Print all characters from p to endbuf
+pflt3    lb     r5,0(r4)
+         putc   r5
+         addi   r4,r4,1
+         cgei   r5,r4,endbuf
+         bz     r5,pflt3
+         jr     r15              % return
 )";
     }
 } // namespace lang

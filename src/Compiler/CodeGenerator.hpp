@@ -87,6 +87,8 @@ namespace lang
         int generateIndexedVarExpr(std::shared_ptr<const ASTNode> node);
         int generateMemberAccessExpr(std::shared_ptr<const ASTNode> node);
 
+        bool isFloatExpr(std::shared_ptr<const ASTNode> node) const;
+
         int generateLValue(std::shared_ptr<const ASTNode> node);
         int generateIndexedVarAddr(std::shared_ptr<const ASTNode> node);
         int generateMemberAccessAddr(std::shared_ptr<const ASTNode> node);

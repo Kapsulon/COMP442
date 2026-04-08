@@ -9,8 +9,8 @@ main
   do
     a = 7;
     b = 3;
-    x = 2.0;
+    x = 2.5;
     write(a);
     write(b);
-    write(x);
+    write(x + x);
   end
