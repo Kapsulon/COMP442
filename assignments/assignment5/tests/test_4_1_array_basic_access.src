@@ -1,0 +1,20 @@
+// Test 4.1: For arrays of basic types (integer and float), access to an array's elements.
+// Fills an integer array with squares and reads elements back.
+
+main
+  local
+    integer arr[5];
+    integer i;
+  do
+    arr[0] = 1;
+    arr[1] = 4;
+    arr[2] = 9;
+    arr[3] = 16;
+    arr[4] = 25;
+    i = 0;
+    while (i < 5)
+      do
+        write(arr[i]);
+        i = i + 1;
+      end;
+  end

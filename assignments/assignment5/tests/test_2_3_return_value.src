@@ -1,0 +1,17 @@
+// Test 2.3: Upon execution of a return statement, pass the return value back.
+// Function computes a value and returns it; main uses the returned value.
+
+square(integer n) : integer
+  do
+    return (n * n);
+  end
+
+main
+  local
+    integer r;
+  do
+    r = square(5);
+    write(r);
+    r = square(square(2));
+    write(r);
+  end

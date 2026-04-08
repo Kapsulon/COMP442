@@ -1,0 +1,18 @@
+// Test 4.4: For objects, access to members of array or object types.
+// Vec class has an integer array member; accesses elements through the object.
+
+class Vec {
+  public integer data[3];
+};
+
+main
+  local
+    Vec v;
+    integer sum;
+  do
+    v.data[0] = 5;
+    v.data[1] = 10;
+    v.data[2] = 15;
+    sum = v.data[0] + v.data[1] + v.data[2];
+    write(sum);
+  end

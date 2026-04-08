@@ -1,0 +1,15 @@
+// Test 2.1: Branch to a function's code block, execute, branch back.
+// Calls a free function that writes a value, then returns to main.
+
+double(integer n) : integer
+  do
+    return (n + n);
+  end
+
+main
+  local
+    integer result;
+  do
+    result = double(6);
+    write(result);
+  end

@@ -1,0 +1,17 @@
+// Test 1.3: Allocate memory for objects.
+// Declares a class with two integer members; creates an instance in main.
+
+class Point {
+  public integer x;
+  public integer y;
+};
+
+main
+  local
+    Point p;
+  do
+    p.x = 3;
+    p.y = 5;
+    write(p.x);
+    write(p.y);
+  end

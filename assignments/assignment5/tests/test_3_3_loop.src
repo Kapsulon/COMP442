@@ -1,0 +1,14 @@
+// Test 3.3: Loop statement (while).
+// Counts from 1 to 5 and writes each value.
+
+main
+  local
+    integer i;
+  do
+    i = 1;
+    while (i <= 5)
+      do
+        write(i);
+        i = i + 1;
+      end;
+  end

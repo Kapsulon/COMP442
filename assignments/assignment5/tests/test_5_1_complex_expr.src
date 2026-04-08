@@ -1,0 +1,34 @@
+// Test 5.1: Computing the value of an entire complex expression.
+// Exercises arithmetic operators with nested sub-expressions and relational
+// operators at condition level.
+
+main
+  local
+    integer a;
+    integer b;
+    integer c;
+    integer result;
+  do
+    a = 3;
+    b = 7;
+    c = 2;
+    // (a + b) * c - 1  =  (3+7)*2-1 = 19
+    result = (a + b) * c - 1;
+    write(result);
+    // a * a + b * b  =  9 + 49 = 58
+    result = a * a + b * b;
+    write(result);
+    // (a + 1) * (b - 2) + c  =  4*5+2 = 22
+    result = (a + 1) * (b - 2) + c;
+    write(result);
+    // relational at condition level
+    if (a < b)
+    then
+      do
+        write(1);
+      end
+    else
+      do
+        write(0);
+      end;
+  end

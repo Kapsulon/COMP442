@@ -1,0 +1,22 @@
+// Test 2.2: Pass parameters as local values to the function's code block.
+// Function receives two parameters and uses them as independent locals.
+
+add(integer a, integer b) : integer
+  local
+    integer sum;
+  do
+    sum = a + b;
+    return (sum);
+  end
+
+main
+  local
+    integer x;
+    integer y;
+    integer z;
+  do
+    x = 4;
+    y = 9;
+    z = add(x, y);
+    write(z);
+  end

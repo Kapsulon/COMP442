@@ -1,0 +1,26 @@
+// Test 5.3: Expression involving an object factor referring to object members.
+// Uses object members directly inside larger expressions.
+
+class Point {
+  public integer x;
+  public integer y;
+};
+
+main
+  local
+    Point p;
+    Point q;
+    integer dist;
+    integer mid;
+  do
+    p.x = 1;
+    p.y = 2;
+    q.x = 7;
+    q.y = 10;
+    // sum of coordinates
+    dist = (q.x - p.x) + (q.y - p.y);
+    write(dist);
+    // midpoint x * 2 (avoids float)
+    mid = p.x + q.x;
+    write(mid);
+  end

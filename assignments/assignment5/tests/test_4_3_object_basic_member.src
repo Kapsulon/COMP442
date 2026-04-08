@@ -1,0 +1,18 @@
+// Test 4.3: For objects, access to members of basic types.
+// Rect class with integer width and height; computes area via member access.
+
+class Rect {
+  public integer width;
+  public integer height;
+};
+
+main
+  local
+    Rect r;
+    integer area;
+  do
+    r.width = 6;
+    r.height = 4;
+    area = r.width * r.height;
+    write(area);
+  end

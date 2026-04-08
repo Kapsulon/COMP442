@@ -476,7 +476,7 @@ namespace lang
                 { memberNode->token.line > 0 ? memberNode->token : node->token });
             return "";
         }
-        return StripAllDimensions(memberSym->signature.type);
+        return memberSym->signature.type;
     }
 
     std::string SemanticAnalyzer::inferTypeIndexedVar(std::shared_ptr<const ASTNode> node, const ScopeContext &ctx)

@@ -1,0 +1,27 @@
+// Test 4.2: For arrays of objects, access to an array element's data members.
+// Array of Point objects; reads and writes the x member of each element.
+
+class Point {
+  public integer x;
+  public integer y;
+};
+
+main
+  local
+    Point arr[3];
+    integer i;
+  do
+    arr[0].x = 10;
+    arr[0].y = 11;
+    arr[1].x = 20;
+    arr[1].y = 21;
+    arr[2].x = 30;
+    arr[2].y = 31;
+    i = 0;
+    while (i < 3)
+      do
+        write(arr[i].x);
+        write(arr[i].y);
+        i = i + 1;
+      end;
+  end

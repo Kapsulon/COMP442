@@ -1,0 +1,16 @@
+// Test 1.1: Allocate memory for basic types (integer, float).
+// Declares integer and float locals in main; assigns and writes them.
+
+main
+  local
+    integer a;
+    integer b;
+    float x;
+  do
+    a = 7;
+    b = 3;
+    x = 2.0;
+    write(a);
+    write(b);
+    write(x);
+  end

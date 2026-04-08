@@ -1,0 +1,18 @@
+// Test 3.2: Conditional statement (if/then/else).
+// Reads an integer and branches on its sign.
+
+main
+  local
+    integer x;
+  do
+    read(x);
+    if (x >= 0)
+    then
+      do
+        write(1);
+      end
+    else
+      do
+        write(0);
+      end;
+  end

@@ -1,0 +1,16 @@
+// Test 3.1: Assignment statement.
+// Assigns literals, arithmetic results, and expression results to variables.
+
+main
+  local
+    integer a;
+    integer b;
+    integer c;
+  do
+    a = 5;
+    b = a * 2 + 3;
+    c = b - a;
+    write(a);
+    write(b);
+    write(c);
+  end
