@@ -8,6 +8,14 @@
 
 namespace lang
 {
+    // Pad a label to at least `width` chars, always leaving at least one space.
+    static std::string lpad(const std::string &lbl, int width = 12)
+    {
+        if ((int)lbl.size() < width)
+            return lbl + std::string(width - lbl.size(), ' ');
+        return lbl + ' ';
+    }
+
     CodeGenerator::CodeGenerator(std::shared_ptr<const ASTNode> ast, const SymbolTableNode *globalTable) : m_ast(ast), m_globalTable(globalTable)
     {
         for (int i = 12; i >= 1; --i) m_freeRegs.push_back(i);
@@ -330,7 +338,7 @@ namespace lang
             int sz = sizeOf(entry->signature.type);
             if (sz <= 0)
                 sz = 4;
-            emitData(std::format("{:<12} res    {}   % {} {}", label, sz, entry->signature.type, entry->name));
+            emitData(lpad(label) + std::format("res    {}   % {} {}", sz, entry->signature.type, entry->name));
             labels[entry->name] = label;
         }
 
@@ -340,10 +348,10 @@ namespace lang
     std::string CodeGenerator::functionLabel(const SymbolTableNode *funcNode, const SymbolTableNode *classNode) const
     {
         if (classNode) {
-            return classNode->name + "_" + funcNode->name;
+            return "func_" + classNode->name + "_" + funcNode->name;
         }
 
-        return funcNode->name;
+        return "func_" + funcNode->name;
     }
 
     int CodeGenerator::loadVar(const std::string &name)
@@ -360,6 +368,20 @@ namespace lang
         if (git != m_globalLabels.end()) {
             emit(std::format("         lw     r{},{}(r0)", r, git->second));
             return r;
+        }
+
+        // Member variable accessed from within a member function via self pointer.
+        if (m_currentClassNode && m_currentFrame.is_member) {
+            for (auto *entry : m_currentClassNode->table) {
+                if (entry->kind == SymbolTableNode::Kind::Data && entry->name == name) {
+                    int selfOff = m_currentFrame.offsets.at("__self");
+                    int selfReg = allocReg();
+                    emit(std::format("         lw     r{},{}(r14)   % load self", selfReg, selfOff));
+                    emit(std::format("         lw     r{},{}(r{})", r, memberOffset(m_currentClassNode, name), selfReg));
+                    freeReg(selfReg);
+                    return r;
+                }
+            }
         }
 
         emit(std::format("         add    r{},r0,r0   % var '{}' not found", r, name));
@@ -379,6 +401,20 @@ namespace lang
             emit(std::format("         sw     {}(r0),r{}", git->second, valueReg));
             return;
         }
+
+        // Member variable accessed from within a member function via self pointer.
+        if (m_currentClassNode && m_currentFrame.is_member) {
+            for (auto *entry : m_currentClassNode->table) {
+                if (entry->kind == SymbolTableNode::Kind::Data && entry->name == name) {
+                    int selfOff = m_currentFrame.offsets.at("__self");
+                    int selfReg = allocReg();
+                    emit(std::format("         lw     r{},{}(r14)   % load self", selfReg, selfOff));
+                    emit(std::format("         sw     {}(r{}),r{}", memberOffset(m_currentClassNode, name), selfReg, valueReg));
+                    freeReg(selfReg);
+                    return;
+                }
+            }
+        }
     }
 
     int CodeGenerator::addrOfVar(const std::string &name)
@@ -395,6 +431,20 @@ namespace lang
         if (git != m_globalLabels.end()) {
             emit(std::format("         addi   r{},r0,{}", r, git->second));
             return r;
+        }
+
+        // Member variable accessed from within a member function via self pointer.
+        if (m_currentClassNode && m_currentFrame.is_member) {
+            for (auto *entry : m_currentClassNode->table) {
+                if (entry->kind == SymbolTableNode::Kind::Data && entry->name == name) {
+                    int selfOff = m_currentFrame.offsets.at("__self");
+                    emit(std::format("         lw     r{},{}(r14)   % load self", r, selfOff));
+                    int off = memberOffset(m_currentClassNode, name);
+                    if (off != 0)
+                        emit(std::format("         addi   r{},r{},{}", r, r, off));
+                    return r;
+                }
+            }
         }
 
         emit(std::format("         add    r{},r0,r0   % addr of '{}' not found", r, name));
@@ -486,7 +536,7 @@ namespace lang
         FrameInfo frame = computeFrameInfo(funcSym, isMember);
 
         emit(std::format("% ---- function: {} ----", label));
-        emit(std::format("{:<12}sw     -4(r14),r15   % save link register", label));
+        emit(lpad(label) + "sw     -4(r14),r15   % save link register");
 
         FrameInfo savedFrame = m_currentFrame;
         const SymbolTableNode *savedFunc = m_currentFuncNode;
@@ -594,10 +644,10 @@ namespace lang
         generateStatBlock(node->children[1]);
         emit(std::format("         j      {}", endLabel));
 
-        emit(std::format("{:<12}add    r0,r0,r0   % else", elseLabel));
+        emit(lpad(elseLabel) + "add    r0,r0,r0   % else");
         generateStatBlock(node->children[2]);
 
-        emit(std::format("{:<12}add    r0,r0,r0   % endif", endLabel));
+        emit(lpad(endLabel) + "add    r0,r0,r0   % endif");
     }
 
     void CodeGenerator::generateWhileStat(std::shared_ptr<const ASTNode> node)
@@ -608,7 +658,7 @@ namespace lang
         std::string loopLabel = newLabel("while");
         std::string endLabel = newLabel("endwhile");
 
-        emit(std::format("{:<12}add    r0,r0,r0   % while loop start", loopLabel));
+        emit(lpad(loopLabel) + "add    r0,r0,r0   % while loop start");
 
         int condReg = generateExpr(node->children[0]);
         emit(std::format("         bz     r{},{}   % while false → end", condReg, endLabel));
@@ -617,7 +667,7 @@ namespace lang
         generateStatBlock(node->children[1]);
         emit(std::format("         j      {}", loopLabel));
 
-        emit(std::format("{:<12}add    r0,r0,r0   % end while", endLabel));
+        emit(lpad(endLabel) + "add    r0,r0,r0   % end while");
     }
 
     void CodeGenerator::generatePutStat(std::shared_ptr<const ASTNode> node)

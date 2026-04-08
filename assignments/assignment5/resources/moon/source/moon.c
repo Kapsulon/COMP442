@@ -27,7 +27,7 @@
 #define MEMSIZE	    4000	/* Memory size in 4-byte words. */
 #define MAXREG		  16	/* Number of registers. */
 #define MAXINFILES	  20	/* Restricts # input files. */
-#define MAXNAMELEN	  60	/* Restricts path/file name length. */
+#define MAXNAMELEN	 255	/* Restricts path/file name length. */
 #define BUFLEN		 255	/* Scanner input buffer. */
 #define TOKLEN		 255	/* Scanner token buffer. */
 #define RANGE		  20	/* Determines size of memory dump. */
