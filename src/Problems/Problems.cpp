@@ -104,10 +104,17 @@ namespace lang
 
     std::string Problems::getProblems(const LexicalAnalyzer &lexer) const
     {
+        std::vector<Problem> sorted = m_problems;
+        std::stable_sort(sorted.begin(), sorted.end(), [](const Problem &a, const Problem &b) {
+            if (a.tokens.empty() || b.tokens.empty())
+                return false;
+            if (a.tokens[0].line != b.tokens[0].line)
+                return a.tokens[0].line < b.tokens[0].line;
+            return a.tokens[0].pos < b.tokens[0].pos;
+        });
+
         std::string res;
-
-        for (auto &problem : m_problems) res.append(getProblemString(lexer, problem));
-
+        for (auto &problem : sorted) res.append(getProblemString(lexer, problem));
         return res;
     }
 
@@ -138,7 +145,9 @@ namespace lang
         std::stable_sort(sorted.begin(), sorted.end(), [](const Problem &a, const Problem &b) {
             if (a.tokens.empty() || b.tokens.empty())
                 return false;
-            return a.tokens[0].line < b.tokens[0].line;
+            if (a.tokens[0].line != b.tokens[0].line)
+                return a.tokens[0].line < b.tokens[0].line;
+            return a.tokens[0].pos < b.tokens[0].pos;
         });
 
         std::ofstream out{ std::string(path) };
@@ -151,6 +160,11 @@ namespace lang
             if (!problem.tokens.empty())
                 out << getProblemString(lexer, problem);
         }
+    }
+
+    void Problems::merge(const Problems &other)
+    {
+        m_problems.insert(m_problems.end(), other.m_problems.begin(), other.m_problems.end());
     }
 
     void Problems::clear()

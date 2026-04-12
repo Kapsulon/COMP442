@@ -27,6 +27,7 @@ namespace lang
         void displayProblems(const LexicalAnalyzer &lexer) const;
         void outputProblems(const LexicalAnalyzer &lexer, std::string_view path) const;
 
+        void merge(const Problems &other);
         void clear();
 
     private:

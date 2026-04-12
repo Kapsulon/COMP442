@@ -15,3 +15,10 @@ bin/
 *.zip
 *.moon
 moon
+
+*.outast
+*.outderivation
+*.outlextokens
+*.outlextokensflaci
+*.outsymboltables
+*.outerrors

@@ -33,6 +33,8 @@ namespace lang
 
         lex();
 
+        m_rawTokens = m_tokens;  // save all tokens (including comments) before erasure
+
         m_tokens.erase(
             std::remove_if(
                 m_tokens.begin(),
@@ -53,6 +55,13 @@ namespace lang
         while (true) {
             Token token = m_lexicalAnalyzer.next();
             m_tokens.push_back(token);
+
+            if (token.type == TokenType::UNKNOWN) {
+                m_problems.error(
+                    "Lexical Error",
+                    std::format("unknown token '{}'", token.lexeme),
+                    { token });
+            }
 
             if (token.type == TokenType::END_OF_FILE) {
                 break;
@@ -604,19 +613,17 @@ namespace lang
         out << m_outDerivationSteps;
     }
 
-    void SyntacticAnalyzer::outputDotAST()
+    std::string SyntacticAnalyzer::makeDotASTString() const
     {
+        if (!m_astRoot)
+            return {};
+
         static const std::set<char> needs_escape = { '<', '>', '{', '}', '|', '"', '\\' };
 
-        std::string errorFilePath = m_currentFilePath + ".outast";
-        std::ofstream out(errorFilePath);
-
-        if (!out.is_open())
-            spdlog::error("Failed to open output file for derivation step: {}", errorFilePath);
-
-        out << "digraph AST {\n";
-        out << "node [shape=record];\n";
-        out << " node [fontname=Sans];charset=\"UTF-8\" splines=true splines=spline rankdir =LR\n";
+        std::string out;
+        out += "digraph AST {\n";
+        out += "node [shape=record];\n";
+        out += " node [fontname=Sans];charset=\"UTF-8\" splines=true splines=spline rankdir =LR\n";
 
         std::uint64_t counter = 0;
         std::function<void(const lang::ASTNodePtr &)> assign;
@@ -646,28 +653,60 @@ namespace lang
                 }
                 label += new_lexeme;
             }
-            out << id << "[label=\"" << label << "\"];\n";
+            out += std::to_string(id) + "[label=\"" + label + "\"];\n";
 
             if (n->children.empty()) {
                 if (n->kind == lang::ASTNode::Kind::DimList) {
-                    out << "none" << id << "[shape=point];\n";
-                    out << id << "->none" << id << ";\n";
+                    out += "none" + std::to_string(id) + "[shape=point];\n";
+                    out += std::to_string(id) + "->none" + std::to_string(id) + ";\n";
                 }
             } else {
                 for (auto &c : n->children) {
-                    out << id << "->" << ids[c.get()] << ";\n";
+                    out += std::to_string(id) + "->" + std::to_string(ids[c.get()]) + ";\n";
                     emit(c);
                 }
             }
         };
         emit(m_astRoot);
 
-        out << "}\n";
+        out += "}\n";
+        return out;
+    }
+
+    void SyntacticAnalyzer::outputDotAST()
+    {
+        std::string errorFilePath = m_currentFilePath + ".outast";
+        std::ofstream out(errorFilePath);
+
+        if (!out.is_open())
+            spdlog::error("Failed to open output file for derivation step: {}", errorFilePath);
+
+        out << makeDotASTString();
     }
 
     const LexicalAnalyzer &SyntacticAnalyzer::getLexer() const
     {
         return m_lexicalAnalyzer;
+    }
+
+    const std::vector<Token> &SyntacticAnalyzer::getRawTokens() const
+    {
+        return m_rawTokens;
+    }
+
+    const Problems &SyntacticAnalyzer::getProblems() const
+    {
+        return m_problems;
+    }
+
+    std::string_view SyntacticAnalyzer::getDerivationSteps() const
+    {
+        return m_outDerivationSteps;
+    }
+
+    std::string SyntacticAnalyzer::getDotASTString() const
+    {
+        return makeDotASTString();
     }
 
 #define SYNTAX_ERROR()                                                                   \

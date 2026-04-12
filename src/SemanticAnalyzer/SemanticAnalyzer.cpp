@@ -99,6 +99,16 @@ namespace lang
         m_problems.outputProblems(m_syntacticAnalyzer.getLexer(), outputPath);
     }
 
+    const Problems &SemanticAnalyzer::getSemanticProblems() const
+    {
+        return m_problems;
+    }
+
+    const SyntacticAnalyzer &SemanticAnalyzer::getSyntacticAnalyzer() const
+    {
+        return m_syntacticAnalyzer;
+    }
+
     SymbolTableNode *SemanticAnalyzer::makeSymbol(SymbolTableNode::Kind kind, const std::string &name, SymbolTableNode *parent, Token token) const
     {
         auto *node = new SymbolTableNode();

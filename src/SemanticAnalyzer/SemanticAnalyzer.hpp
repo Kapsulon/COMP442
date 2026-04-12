@@ -106,6 +106,10 @@ namespace lang
         std::shared_ptr<const ASTNode> getAST() const { return m_ast; }
         const SymbolTableNode *getSymbolTable() const { return m_symbolTable; }
 
+        const Problems &getSemanticProblems() const;
+        const SyntacticAnalyzer &getSyntacticAnalyzer() const;
+        std::string renderSymbolTable() const;
+
     private:
         Problems m_problems;
         SyntacticAnalyzer m_syntacticAnalyzer;
@@ -133,7 +137,6 @@ namespace lang
 
         tabulate::Table::Row_t renderRow(const SymbolTableNode *node) const;
         tabulate::Table renderTable(const SymbolTableNode *node) const;
-        std::string renderSymbolTable() const;
         static std::string GetFullNamespace(const SymbolTableNode *node);
 
         void semanticChecks();

@@ -356,10 +356,15 @@ namespace lang
         void outputDotAST();
 
         const LexicalAnalyzer &getLexer() const;
+        const std::vector<Token> &getRawTokens() const;
+        const Problems &getProblems() const;
+        std::string_view getDerivationSteps() const;
+        std::string getDotASTString() const;
 
     private:
         LexicalAnalyzer m_lexicalAnalyzer;
         std::vector<Token> m_tokens;
+        std::vector<Token> m_rawTokens;
         std::string m_currentFilePath;
 
         Problems m_problems;
@@ -375,6 +380,8 @@ namespace lang
 
         void executeAction(SemanticAction action);
         void writeDerivationSteps(const NonTerminal &A, const ParseTableEntry &entry);
+
+        std::string makeDotASTString() const;
 
         void closeFile();
         void lex();
