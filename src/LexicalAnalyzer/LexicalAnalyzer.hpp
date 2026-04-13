@@ -75,7 +75,7 @@ namespace lang
         UNKNOWN
     };
 
-    using Token = struct {
+    struct Token {
         TokenType type;
         std::string lexeme;
         std::uint64_t line;
@@ -117,7 +117,7 @@ namespace lang
 
         std::vector<std::uint64_t> m_lineStartIndexes;
 
-        using LexRule = struct {
+        struct LexRule {
             TokenType type;
             std::uint32_t (*match)(std::string_view);
         };
