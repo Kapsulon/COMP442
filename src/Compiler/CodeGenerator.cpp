@@ -1,8 +1,10 @@
 #include "CodeGenerator.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <format>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 
@@ -190,27 +192,33 @@ namespace lang
     int CodeGenerator::memberOffset(const SymbolTableNode *cls, const std::string &name) const
     {
         if (!cls)
-            return 0;
+            return -1;
 
         int offset = 0;
 
+        // First search inherited base classes (they come first in memory layout)
         for (auto *entry : cls->table) {
-            if (entry->kind == SymbolTableNode::Kind::Inherit && entry->name != "none") {
-                std::string inherited = entry->name;
-                size_t pos = 0;
-                while (pos < inherited.size()) {
-                    size_t comma = inherited.find(',', pos);
-                    std::string baseName = (comma == std::string::npos) ? inherited.substr(pos) : inherited.substr(pos, comma - pos);
-                    while (!baseName.empty() && baseName.front() == ' ') baseName.erase(0, 1);
-                    while (!baseName.empty() && baseName.back() == ' ') baseName.pop_back();
-                    const SymbolTableNode *base = findClass(baseName);
-                    if (base)
-                        offset += sizeOfClass(base);
-                    pos = (comma == std::string::npos) ? inherited.size() : comma + 1;
+            if (entry->kind != SymbolTableNode::Kind::Inherit || entry->name == "none")
+                continue;
+            std::string inherited = entry->name;
+            size_t pos = 0;
+            while (pos < inherited.size()) {
+                size_t comma = inherited.find(',', pos);
+                std::string baseName = (comma == std::string::npos) ? inherited.substr(pos) : inherited.substr(pos, comma - pos);
+                while (!baseName.empty() && baseName.front() == ' ') baseName.erase(0, 1);
+                while (!baseName.empty() && baseName.back() == ' ') baseName.pop_back();
+                const SymbolTableNode *base = findClass(baseName);
+                if (base) {
+                    int baseOff = memberOffset(base, name);
+                    if (baseOff >= 0)
+                        return offset + baseOff;  // found in this base class
+                    offset += sizeOfClass(base);  // not here, skip past base
                 }
+                pos = (comma == std::string::npos) ? inherited.size() : comma + 1;
             }
         }
 
+        // Then search own data members
         for (auto *entry : cls->table) {
             if (entry->kind != SymbolTableNode::Kind::Data)
                 continue;
@@ -219,7 +227,7 @@ namespace lang
             offset += sizeOf(entry->signature.type);
         }
 
-        return 0;
+        return -1;  // not found in this class or any base
     }
 
     std::string CodeGenerator::getVarType(const std::string &name) const
@@ -347,11 +355,20 @@ namespace lang
 
     std::string CodeGenerator::functionLabel(const SymbolTableNode *funcNode, const SymbolTableNode *classNode) const
     {
-        if (classNode) {
-            return "func_" + classNode->name + "_" + funcNode->name;
+        std::string paramStr;
+        for (const auto &p : funcNode->signature.params) {
+            paramStr += "_" + p;
+        }
+        // Sanitize: replace characters invalid in MOON labels
+        for (char &c : paramStr) {
+            if (c == '[' || c == ']' || c == ',' || c == ' ')
+                c = '_';
         }
 
-        return "func_" + funcNode->name;
+        if (classNode) {
+            return "func_" + classNode->name + "_" + funcNode->name + paramStr;
+        }
+        return "func_" + funcNode->name + paramStr;
     }
 
     int CodeGenerator::loadVar(const std::string &name)
@@ -526,7 +543,31 @@ namespace lang
             if (classSym)
                 funcSym = findMethod(classSym, funcName);
         } else {
-            funcSym = findFreeFunction(nameNode->lexeme);
+            // For overloaded free functions, match by name AND parameter types from the AST
+            auto &paramListNode = funcDef->children[2];
+            std::vector<std::string> defParams;
+            for (auto &param : paramListNode->children) {
+                if (param->kind == ASTNode::Kind::VarDecl && param->children.size() >= 3) {
+                    std::string raw = param->children[0]->lexeme;
+                    // normalize primitive type names (integer → int)
+                    std::string lower = raw;
+                    for (char &c : lower) c = (char)std::tolower((unsigned char)c);
+                    std::string t = (lower == "integer") ? "int" : raw;
+                    for (auto &dim : param->children[2]->children)
+                        t += "[" + dim->lexeme + "]";
+                    defParams.push_back(t);
+                }
+            }
+            for (auto *entry : m_globalTable->table) {
+                if (entry->kind == SymbolTableNode::Kind::Function &&
+                    entry->name == nameNode->lexeme &&
+                    entry->signature.params == defParams) {
+                    funcSym = entry;
+                    break;
+                }
+            }
+            if (!funcSym)
+                funcSym = findFreeFunction(nameNode->lexeme);  // fallback
         }
 
         if (!funcSym)
@@ -699,14 +740,12 @@ namespace lang
         if (!node || node->children.empty())
             return;
 
-        emit("         jl     r15,getint   % read integer → r1");
-
         auto &var = node->children[0];
-
-        // If the target variable is float, scale the integer input by 100
         bool targetIsFloat = isFloatExpr(var);
         if (targetIsFloat) {
-            emit("         muli   r1,r1,100   % scale int input to float x100");
+            emit("         jl     r15,getfloat   % read float → r1 (already ×100)");
+        } else {
+            emit("         jl     r15,getint   % read integer → r1");
         }
 
         if (var->kind == ASTNode::Kind::Id) {
@@ -816,12 +855,11 @@ namespace lang
         } else if (op == "-") {
             emit(std::format("         sub    r{},r{},r{}", res, lReg, rReg));
         } else if (op == "or") {
-            emit(std::format("         or     r{},r{},r{}", res, lReg, rReg));
+            emit(std::format("         cnei   r{},r{},0   % normalize lhs to bool", lReg, lReg));
+            emit(std::format("         cnei   r{},r{},0   % normalize rhs to bool", rReg, rReg));
+            emit(std::format("         add    r{},r{},r{}", res, lReg, rReg));
+            emit(std::format("         cnei   r{},r{},0   % or: 1 if either non-zero", res, res));
         } else if (op == "*") {
-            if (floatCtx) {
-                // Before multiply, scale lhs up so result stays in x100 range
-                emit(std::format("         muli   r{},r{},100   % pre-scale for float mul", lReg, lReg));
-            }
             emit(std::format("         mul    r{},r{},r{}", res, lReg, rReg));
             if (floatCtx) {
                 emit(std::format("         divi   r{},r{},100   % post-scale for float mul", res, res));
@@ -833,7 +871,9 @@ namespace lang
             }
             emit(std::format("         div    r{},r{},r{}", res, lReg, rReg));
         } else if (op == "and") {
-            emit(std::format("         and    r{},r{},r{}", res, lReg, rReg));
+            emit(std::format("         cnei   r{},r{},0   % normalize lhs to bool", lReg, lReg));
+            emit(std::format("         cnei   r{},r{},0   % normalize rhs to bool", rReg, rReg));
+            emit(std::format("         mul    r{},r{},r{}", res, lReg, rReg));
         } else {
             emit(std::format("         add    r{},r{},r{}", res, lReg, rReg));
         }
@@ -940,7 +980,33 @@ namespace lang
         auto &paramListNode = node->children[1];
 
         if (calleeNode->kind == ASTNode::Kind::Id) {
-            const SymbolTableNode *funcSym = findFreeFunction(calleeNode->lexeme);
+            // Overload resolution: infer arg types and find best-matching function
+            const SymbolTableNode *funcSym = nullptr;
+            const auto &callArgs = paramListNode->children;
+            std::vector<std::string> argTypes;
+            for (auto &arg : callArgs)
+                argTypes.push_back(isFloatExpr(arg) ? "float" : "int");
+
+            for (auto *entry : m_globalTable->table) {
+                if (entry->kind != SymbolTableNode::Kind::Function) continue;
+                if (entry->name != calleeNode->lexeme) continue;
+                if (entry->signature.params.size() != argTypes.size()) continue;
+                bool match = true;
+                for (size_t k = 0; k < argTypes.size(); k++) {
+                    std::string pbase = entry->signature.params[k];
+                    size_t br = pbase.find('[');
+                    if (br != std::string::npos) pbase = pbase.substr(0, br);
+                    // float param accepts int arg (promotion); exact match otherwise
+                    if (pbase != argTypes[k] && !(pbase == "float" && argTypes[k] == "int")) {
+                        match = false;
+                        break;
+                    }
+                }
+                if (match) { funcSym = entry; break; }
+            }
+            if (!funcSym)
+                funcSym = findFreeFunction(calleeNode->lexeme);  // fallback (no-arg or any overload)
+
             if (!funcSym) {
                 int r = allocReg();
                 emit(std::format("         add    r{},r0,r0   % unknown func {}", r, calleeNode->lexeme));
@@ -1014,6 +1080,27 @@ namespace lang
                         return false;
                     auto &calleeNode = node->children[0];
                     if (calleeNode->kind == ASTNode::Kind::Id) {
+                        // Overload-aware: infer arg types and find best matching function
+                        const auto &callArgs = (node->children.size() >= 2) ? node->children[1]->children
+                                                                              : std::vector<std::shared_ptr<ASTNode>>{};
+                        std::vector<std::string> argTypes;
+                        for (auto &arg : callArgs)
+                            argTypes.push_back(isFloatExpr(arg) ? "float" : "int");
+                        for (auto *entry : m_globalTable->table) {
+                            if (entry->kind != SymbolTableNode::Kind::Function) continue;
+                            if (entry->name != calleeNode->lexeme) continue;
+                            if (entry->signature.params.size() != argTypes.size()) continue;
+                            bool match = true;
+                            for (size_t k = 0; k < argTypes.size(); k++) {
+                                std::string pbase = entry->signature.params[k];
+                                size_t bk = pbase.find('[');
+                                if (bk != std::string::npos) pbase = pbase.substr(0, bk);
+                                if (pbase != argTypes[k] && !(pbase == "float" && argTypes[k] == "int")) {
+                                    match = false; break;
+                                }
+                            }
+                            if (match) return entry->signature.type == "float";
+                        }
                         const SymbolTableNode *fn = findFreeFunction(calleeNode->lexeme);
                         return fn && fn->signature.type == "float";
                     } else if (calleeNode->kind == ASTNode::Kind::MemberAccess && calleeNode->children.size() >= 2) {
@@ -1028,8 +1115,10 @@ namespace lang
                 {
                     if (node->children.size() < 2)
                         return false;
-                    std::string objType = getVarType(node->children[0]->lexeme);
-                    const SymbolTableNode *cls = findClass(objType);
+                    std::string objType = getExprType(node->children[0]);
+                    size_t br2 = objType.find('[');
+                    std::string baseObjName = (br2 != std::string::npos) ? objType.substr(0, br2) : objType;
+                    const SymbolTableNode *cls = findClass(baseObjName);
                     if (!cls)
                         return false;
                     const std::string &memberName = node->children[1]->lexeme;
@@ -1046,23 +1135,12 @@ namespace lang
                 }
             case ASTNode::Kind::IndexedVar:
                 {
-                    if (node->children.empty())
+                    // getExprType strips one dimension recursively; works for multi-dim and nested cases
+                    std::string elemType = getExprType(node);
+                    if (elemType.empty())
                         return false;
-                    auto &baseNode = node->children[0];
-                    if (baseNode->kind != ASTNode::Kind::Id)
-                        return false;
-                    std::string varType = getVarType(baseNode->lexeme);
-                    // Strip one array dimension
-                    size_t bracket = varType.find('[');
-                    if (bracket == std::string::npos)
-                        return false;
-                    size_t close = varType.find(']', bracket);
-                    if (close == std::string::npos)
-                        return false;
-                    std::string elemType = varType.substr(0, bracket) + varType.substr(close + 1);
-                    // Get base type
-                    size_t b2 = elemType.find('[');
-                    std::string baseType = (b2 != std::string::npos) ? elemType.substr(0, b2) : elemType;
+                    size_t b = elemType.find('[');
+                    std::string baseType = (b != std::string::npos) ? elemType.substr(0, b) : elemType;
                     return baseType == "float";
                 }
             default:
@@ -1116,7 +1194,13 @@ namespace lang
                 }
             }
 
-            bool isPointer = isPointerType(varType);
+            // Array-typed parameters are always passed as pointers (by address),
+            // regardless of whether brackets are empty [] or sized [N].
+            bool isArrayParam = varType.find('[') != std::string::npos && m_currentFuncNode &&
+                std::any_of(m_currentFuncNode->table.begin(), m_currentFuncNode->table.end(), [&](const SymbolTableNode *e) {
+                    return e->kind == SymbolTableNode::Kind::Parameter && e->name == arrName;
+                });
+            bool isPointer = isPointerType(varType) || isArrayParam;
             if (isPointer) {
                 baseReg = allocReg();
                 auto fit = m_currentFrame.offsets.find(arrName);
@@ -1177,9 +1261,9 @@ namespace lang
         size_t br = objType.find('[');
         std::string baseObjType = (br != std::string::npos) ? objType.substr(0, br) : objType;
         const SymbolTableNode *cls = findClass(baseObjType);
-        int offset = cls ? memberOffset(cls, memberNode->lexeme) : 0;
+        int offset = cls ? memberOffset(cls, memberNode->lexeme) : -1;
 
-        if (offset == 0)
+        if (offset <= 0)
             return objAddrReg;
 
         int addrReg = allocReg();
@@ -1208,7 +1292,9 @@ namespace lang
 
         std::vector<int> argRegs;
         for (size_t i = 0; i < args.size(); i++) {
-            bool passAsPointer = (i < params.size()) && isPointerType(params[i]->signature.type);
+            bool passAsPointer = (i < params.size()) &&
+                (isPointerType(params[i]->signature.type) ||
+                 params[i]->signature.type.find('[') != std::string::npos);
             int reg = passAsPointer ? generateLValue(args[i]) : generateExpr(args[i]);
             // If the parameter expects float but the argument is an integer expression, scale up
             if (i < params.size() && params[i]->signature.type == "float" && !isFloatExpr(args[i])) {
@@ -1217,10 +1303,30 @@ namespace lang
             argRegs.push_back(reg);
         }
 
+        // Caller-save: spill all live registers (allocated but not used as args) so the
+        // callee's MOON code doesn't corrupt values the caller still needs after the call.
+        std::set<int> argRegSet(argRegs.begin(), argRegs.end());
+        std::vector<int> liveRegs;
+        for (int r = 1; r <= 12; r++) {
+            bool isFree = std::find(m_freeRegs.begin(), m_freeRegs.end(), r) != m_freeRegs.end();
+            if (!isFree && argRegSet.find(r) == argRegSet.end())
+                liveRegs.push_back(r);
+        }
+        int spillSize = (int)liveRegs.size() * 4;
+
+        // Save live registers to the spill area (immediately below the current frame)
+        for (size_t i = 0; i < liveRegs.size(); i++) {
+            int offset = -(m_currentFrame.frame_size + (int)(i + 1) * 4);
+            emit(std::format("         sw     {}(r14),r{}   % spill r{}", offset, liveRegs[i], liveRegs[i]));
+        }
+
+        // Effective frame size includes the spill area so the callee doesn't overwrite it
+        int effectiveFrameSize = m_currentFrame.frame_size + spillSize;
+
         if (isMember && selfAddrReg >= 0) {
             auto selfIt = calleeFrame.offsets.find("__self");
             if (selfIt != calleeFrame.offsets.end()) {
-                int placementOffset = selfIt->second - m_currentFrame.frame_size;
+                int placementOffset = selfIt->second - effectiveFrameSize;
                 emit(std::format("         sw     {}(r14),r{}   % pass self pointer", placementOffset, selfAddrReg));
             }
         }
@@ -1228,25 +1334,32 @@ namespace lang
         for (size_t i = 0; i < argRegs.size() && i < params.size(); i++) {
             auto pit = calleeFrame.offsets.find(params[i]->name);
             if (pit != calleeFrame.offsets.end()) {
-                int placementOffset = pit->second - m_currentFrame.frame_size;
+                int placementOffset = pit->second - effectiveFrameSize;
                 emit(std::format("         sw     {}(r14),r{}   % pass arg '{}'", placementOffset, argRegs[i], params[i]->name));
             }
         }
 
         for (int r : argRegs) freeReg(r);
 
-        if (m_currentFrame.frame_size > 0) {
-            emit(std::format("         subi   r14,r14,{}", m_currentFrame.frame_size));
+        if (effectiveFrameSize > 0) {
+            emit(std::format("         subi   r14,r14,{}", effectiveFrameSize));
         }
 
         emit(std::format("         jl     r15,{}   % call {}", functionLabel(funcNode, classNode), funcNode->name));
 
-        if (m_currentFrame.frame_size > 0) {
-            emit(std::format("         addi   r14,r14,{}", m_currentFrame.frame_size));
+        if (effectiveFrameSize > 0) {
+            emit(std::format("         addi   r14,r14,{}", effectiveFrameSize));
         }
 
         int resultReg = allocReg();
         emit(std::format("         add    r{},r13,r0   % copy return value", resultReg));
+
+        // Restore spilled registers (caller-save restore)
+        for (size_t i = 0; i < liveRegs.size(); i++) {
+            int offset = -(m_currentFrame.frame_size + (int)(i + 1) * 4);
+            emit(std::format("         lw     r{},{}(r14)   % restore r{}", liveRegs[i], offset, liveRegs[i]));
+        }
+
         return resultReg;
     }
 
@@ -1370,6 +1483,72 @@ pflt3    lb     r5,0(r4)
          cgei   r5,r4,endbuf
          bz     r5,pflt3
          jr     r15              % return
+
+         align
+% Read a fixed-point float (as D.FF) from input, returns value*100 in r1.
+% Handles optional sign, integer digits, optional '.', up to 2 fractional digits.
+% Uses: r1, r2, r3, r4, r5, r6.  Link: r15.
+getfloat add    r1,r0,r0         % int_part := 0
+         add    r2,r0,r0         % c := 0
+         add    r3,r0,r0         % sign := 0
+gflt0    getc   r2               % skip whitespace
+         ceqi   r4,r2,32
+         bnz    r4,gflt0
+         ceqi   r4,r2,9          % tab
+         bnz    r4,gflt0
+         ceqi   r4,r2,13         % CR
+         bnz    r4,gflt0
+         ceqi   r4,r2,43         % '+'
+         bnz    r4,gflt1         % skip '+'
+         ceqi   r4,r2,45         % '-'
+         bz     r4,gflt2         % not '-'
+         addi   r3,r0,1          % sign := 1 (negative)
+gflt1    getc   r2               % advance past sign
+gflt2    ceqi   r4,r2,46         % '.'
+         bnz    r4,gflt5         % branch if decimal point
+         ceqi   r4,r2,10         % newline
+         bnz    r4,gflt6         % branch if end of line (no decimal)
+         cgei   r4,r2,48
+         bz     r4,gflt4         % c < '0'
+         clei   r4,r2,57
+         bz     r4,gflt4         % c > '9'
+         muli   r1,r1,10
+         add    r1,r1,r2
+         subi   r1,r1,48
+         j      gflt1
+gflt4    addi   r2,r0,63         % '?'
+         putc   r2               % invalid char
+         j      getfloat         % restart
+gflt5    add    r5,r0,r0         % frac := 0
+         add    r4,r0,r0         % digit_count := 0
+gflt7    getc   r2
+         ceqi   r6,r2,10         % newline
+         bnz    r6,gflt8
+         cgei   r6,r2,48
+         bz     r6,gflt8         % not a digit → stop
+         clei   r6,r2,57
+         bz     r6,gflt8
+         cgei   r6,r4,2
+         bnz    r6,gflt7         % ignore beyond 2 decimal digits
+         muli   r5,r5,10
+         add    r5,r5,r2
+         subi   r5,r5,48
+         addi   r4,r4,1
+         j      gflt7
+gflt8    cgei   r6,r4,2          % pad fraction to exactly 2 digits
+         bnz    r6,gflt9
+         muli   r5,r5,10
+         addi   r4,r4,1
+         j      gflt8
+gflt9    muli   r1,r1,100        % scale int_part by 100
+         add    r1,r1,r5         % combine with frac
+         bz     r3,gfltpos
+         sub    r1,r0,r1         % negate
+gfltpos  jr     r15
+gflt6    muli   r1,r1,100        % no decimal: scale int_part by 100
+         bz     r3,gfltpos
+         sub    r1,r0,r1
+         jr     r15
 )";
     }
 } // namespace lang
